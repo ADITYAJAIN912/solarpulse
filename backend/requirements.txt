@@ -2,7 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 python-jose
-passlib[bcrypt]
+bcrypt
 python-dotenv
 google-generativeai
-pydantic
+pydantic[email]

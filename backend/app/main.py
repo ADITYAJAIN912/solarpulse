@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.database import Base, engine
 from app.models import Alert, EnergyReading, Plant, User  # noqa: F401
+from app.routes import auth
 
 
 @asynccontextmanager
@@ -18,6 +19,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(auth.router)
 
 
 @app.get("/")
