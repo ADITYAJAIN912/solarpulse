@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.database import Base, engine
 from app.models import Alert, EnergyReading, Plant, User  # noqa: F401
-from app.routes import auth
+from app.routes import auth, plants
 
 
 @asynccontextmanager
@@ -21,6 +21,7 @@ app = FastAPI(
 )
 
 app.include_router(auth.router)
+app.include_router(plants.router)
 
 
 @app.get("/")
