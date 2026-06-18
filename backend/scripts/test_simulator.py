@@ -20,6 +20,7 @@ from app.database import Base, SessionLocal, engine
 from app.models import Inverter, Plant, User  # noqa: F401 — needed for create_all
 from app.models.reading import EnergyReading
 from app.services.auth_service import hash_password
+from app.services.performance import evaluate_plant_readings
 from app.services.solar_simulator import simulate_plant_day
 
 Base.metadata.create_all(bind=engine)
@@ -124,6 +125,41 @@ def main() -> None:
         print(f"  Overall PR        : {s2.performance_ratio_pct:.1f}%")
         print(f"  Fault hour        : {s2.fault_injected_at_hour}:00")
         _print_hourly_table(db, plant.id, day2)
+
+        # --- Day 3: Inverter A faults across all 8 peak hours (9–16) ---
+        # Injecting across 8 consecutive hours (≈87% of daily expected energy)
+        # each at ~80% plant PR (Inverter A at 50–70%, Inverter B normal).
+        # Expected daily PR: ~82–83%, which breaches the 85% warning threshold
+        # and triggers an Alert row in the database.
+        day3 = date(2026, 6, 19)
+        fault_hours = list(range(9, 17))  # hours 9, 10, 11, 12, 13, 14, 15, 16
+        print(f"\n[Day 3] Sustained fault on Inverter A, hours {fault_hours[0]}–{fault_hours[-1]} — {day3}")
+        s3 = simulate_plant_day(
+            plant_id=plant.id,
+            capacity_mw=plant.capacity_mw,
+            db=db,
+            sim_date=day3,
+            inject_fault_at_hours=fault_hours,
+            overwrite=True,
+        )
+        print(f"  Plant readings    : {s3.plant_readings_created}")
+        print(f"  Inverter readings : {s3.inverter_readings_created}")
+        print(f"  Total expected    : {s3.total_expected_kwh:,.1f} kWh")
+        print(f"  Total actual      : {s3.total_actual_kwh:,.1f} kWh")
+        print(f"  Simulator PR      : {s3.performance_ratio_pct:.1f}%  (includes ±10% weather noise)")
+        print(f"  Fault hours       : {s3.fault_injected_at_hours}")
+        _print_hourly_table(db, plant.id, day3)
+
+        # Now call the performance service to evaluate Day 3
+        print(f"\n[Day 3] Performance evaluation via evaluate_plant_readings —")
+        perf = evaluate_plant_readings(plant_id=plant.id, db=db, eval_date=day3)
+        print(f"  Overall daily PR  : {perf.overall_pr_pct}%")
+        print(f"  Severity          : {perf.severity}")
+        print(f"  Risk score        : {perf.risk_score} / 100")
+        print(f"  Alert created     : {'YES — alert_id=' + str(perf.alert_id) if perf.alert_id else 'NO (PR still above threshold)'}")
+        print(f"  Flagged hours     : {len(perf.flagged_hours)}")
+        for fh in perf.flagged_hours:
+            print(f"    Hour {fh.hour:>2}:00 — PR {fh.performance_ratio_pct:.1f}%  [{fh.severity}]")
 
         print(f"\n{'='*60}")
         print("  All checks passed — simulator is working correctly.")

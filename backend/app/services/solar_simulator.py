@@ -137,7 +137,8 @@ class SimulationSummary:
     total_expected_kwh: float
     total_actual_kwh: float
     performance_ratio_pct: float
-    fault_injected_at_hour: int | None
+    fault_injected_at_hour: int | None          # legacy single-hour field
+    fault_injected_at_hours: list[int] | None   # multi-hour field
 
 
 def simulate_plant_day(
@@ -146,6 +147,7 @@ def simulate_plant_day(
     db: Session,
     sim_date: date,
     inject_fault_at_hour: int | None = None,
+    inject_fault_at_hours: list[int] | None = None,
     overwrite: bool = False,
 ) -> SimulationSummary:
     """
@@ -167,21 +169,23 @@ def simulate_plant_day(
 
     Fault injection
     ---------------
-    If inject_fault_at_hour is provided, Inverter A has fault_injection=True
-    at that hour only.  The plant-level reading for that hour will show a
-    reduced but not catastrophic drop — mirroring a single-inverter trip
-    rather than a whole-plant failure.  This is the precise scenario needed
-    to test "which inverter is the problem" detection in the monitoring layer.
+    Both inject_fault_at_hour (single int, legacy) and inject_fault_at_hours
+    (list of ints, multi-hour) are merged into a single fault-hour set at
+    runtime.  Inverter A has fault_injection=True for every hour in that set.
+    Inverter B always runs normally so the plant-level PR drops proportionally
+    rather than completely — mirroring a real single-inverter degradation.
 
     Args:
-        plant_id:             Database id of the Plant row.
-        capacity_mw:          Nameplate capacity of the plant (MW).
-        db:                   Active SQLAlchemy session.
-        sim_date:             Calendar date to simulate.
-        inject_fault_at_hour: Hour (0–23) at which Inverter A faults.
-                              None disables fault injection.
-        overwrite:            If True, delete existing readings for this
-                              plant+date before inserting new ones.
+        plant_id:               Database id of the Plant row.
+        capacity_mw:            Nameplate capacity of the plant (MW).
+        db:                     Active SQLAlchemy session.
+        sim_date:               Calendar date to simulate.
+        inject_fault_at_hour:   Single hour (0–23) at which Inverter A faults.
+                                Kept for backward compatibility.
+        inject_fault_at_hours:  List of hours at which Inverter A faults.
+                                Use for multi-hour sustained fault scenarios.
+        overwrite:              If True, delete existing readings for this
+                                plant+date before inserting new ones.
 
     Returns:
         SimulationSummary dataclass with counts and aggregate metrics.
@@ -234,14 +238,20 @@ def simulate_plant_day(
     total_expected = 0.0
     total_actual = 0.0
 
+    # Merge single-hour and multi-hour fault params into one set
+    fault_hour_set: set[int] = set()
+    if inject_fault_at_hour is not None:
+        fault_hour_set.add(inject_fault_at_hour)
+    if inject_fault_at_hours is not None:
+        fault_hour_set.update(inject_fault_at_hours)
+
     for hour in range(24):
         ts = datetime(
             sim_date.year, sim_date.month, sim_date.day,
             hour, 0, 0, tzinfo=timezone.utc
         )
 
-        fault_this_hour = (inject_fault_at_hour is not None
-                           and hour == inject_fault_at_hour)
+        fault_this_hour = hour in fault_hour_set
 
         out_a = generate_hourly_output(
             capacity_mw=cap_a,
@@ -293,6 +303,8 @@ def simulate_plant_day(
 
     pr_pct = round((total_actual / total_expected * 100), 2) if total_expected > 0 else 0.0
 
+    all_fault_hours = sorted(fault_hour_set) if fault_hour_set else None
+
     return SimulationSummary(
         plant_id=plant_id,
         date=sim_date,
@@ -303,4 +315,5 @@ def simulate_plant_day(
         total_actual_kwh=round(total_actual, 2),
         performance_ratio_pct=pr_pct,
         fault_injected_at_hour=inject_fault_at_hour,
+        fault_injected_at_hours=all_fault_hours,
     )

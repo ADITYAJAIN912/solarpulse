@@ -1,12 +1,16 @@
-"""Plant CRUD routes — all endpoints require a valid JWT."""
+"""Plant CRUD and performance routes — all endpoints require a valid JWT."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.plant import Plant
 from app.models.user import User
+from app.schemas.performance import PerformanceResponse
 from app.schemas.plant import PlantCreate, PlantResponse
+from app.services.performance import evaluate_plant_readings
 from app.utils.dependencies import get_current_user
 
 router = APIRouter(prefix="/plants", tags=["plants"])
@@ -76,3 +80,41 @@ def get_plant(
         )
 
     return plant
+
+
+def _get_owned_plant(plant_id: int, db: Session, current_user: User) -> Plant:
+    """Shared ownership guard used by sub-resource routes."""
+    plant = db.get(Plant, plant_id)
+    if plant is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Plant {plant_id} not found.",
+        )
+    if plant.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this plant.",
+        )
+    return plant
+
+
+@router.get("/{plant_id}/performance", response_model=PerformanceResponse)
+def get_plant_performance(
+    plant_id: int,
+    eval_date: date = Query(..., alias="date", description="Date to evaluate (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PerformanceResponse:
+    """
+    Evaluate a plant's daily Performance Ratio and return a severity assessment.
+
+    Ownership is checked before any data is read — a user cannot query
+    performance data for a plant they do not own.
+
+    If the overall daily PR is below the warning threshold (85%), an Alert
+    row is upserted in the database for this plant + date.  Calling the
+    endpoint multiple times for the same date is safe — it updates the
+    existing alert rather than creating duplicates.
+    """
+    _get_owned_plant(plant_id, db, current_user)
+    return evaluate_plant_readings(plant_id=plant_id, db=db, eval_date=eval_date)
