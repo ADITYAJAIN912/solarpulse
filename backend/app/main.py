@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.database import Base, engine
-from app.models import Alert, EnergyReading, Plant, User  # noqa: F401
+from app.models import Alert, EnergyReading, Inverter, Plant, User  # noqa: F401
 from app.routes import auth, plants
 
 

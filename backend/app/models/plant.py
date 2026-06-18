@@ -10,6 +10,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.alert import Alert
+    from app.models.inverter import Inverter
     from app.models.reading import EnergyReading
     from app.models.user import User
 
@@ -31,6 +32,7 @@ class Plant(Base):
     )
 
     owner: Mapped["User"] = relationship(back_populates="plants")
+    inverters: Mapped[list["Inverter"]] = relationship(back_populates="plant")
     energy_readings: Mapped[list["EnergyReading"]] = relationship(
         back_populates="plant"
     )
