@@ -6,3 +6,4 @@ bcrypt
 python-dotenv
 google-generativeai
 pydantic[email]
+scikit-learn

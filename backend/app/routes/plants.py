@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.plant import Plant
 from app.models.user import User
+from app.schemas.anomaly import AnomalyDetectionResponse
 from app.schemas.performance import PerformanceResponse
 from app.schemas.plant import PlantCreate, PlantResponse
+from app.services.anomaly_detection import detect_plant_anomalies
 from app.services.performance import evaluate_plant_readings
 from app.utils.dependencies import get_current_user
 
@@ -118,3 +120,33 @@ def get_plant_performance(
     """
     _get_owned_plant(plant_id, db, current_user)
     return evaluate_plant_readings(plant_id=plant_id, db=db, eval_date=eval_date)
+
+
+@router.get("/{plant_id}/anomalies", response_model=AnomalyDetectionResponse)
+def get_plant_anomalies(
+    plant_id: int,
+    eval_date: date = Query(..., alias="date", description="Date to scan (YYYY-MM-DD)"),
+    lookback_days: int = Query(
+        14,
+        ge=1,
+        le=90,
+        description="Days of history before eval_date used to train the model",
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AnomalyDetectionResponse:
+    """
+    Run Isolation Forest anomaly detection for a single plant and date.
+
+    Trains on daytime plant-level readings from the lookback window, then
+    flags individual hours on eval_date whose output profile deviates from
+    the learned baseline.  Complements GET /plants/{id}/performance which
+    applies rule-based daily PR thresholds.
+    """
+    _get_owned_plant(plant_id, db, current_user)
+    return detect_plant_anomalies(
+        plant_id=plant_id,
+        db=db,
+        eval_date=eval_date,
+        lookback_days=lookback_days,
+    )

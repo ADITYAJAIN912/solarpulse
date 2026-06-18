@@ -20,6 +20,7 @@ from app.database import Base, SessionLocal, engine
 from app.models import Inverter, Plant, User  # noqa: F401 — needed for create_all
 from app.models.reading import EnergyReading
 from app.services.auth_service import hash_password
+from app.services.anomaly_detection import detect_plant_anomalies
 from app.services.performance import evaluate_plant_readings
 from app.services.solar_simulator import simulate_plant_day
 
@@ -160,6 +161,20 @@ def main() -> None:
         print(f"  Flagged hours     : {len(perf.flagged_hours)}")
         for fh in perf.flagged_hours:
             print(f"    Hour {fh.hour:>2}:00 — PR {fh.performance_ratio_pct:.1f}%  [{fh.severity}]")
+
+        # --- Anomaly detection (Isolation Forest) ---
+        print(f"\n[Anomaly detection] Isolation Forest scan —")
+        for label, scan_date in [("Day 1 (no prior history)", day1), ("Day 2 (1-hr fault)", day2), ("Day 3 (sustained fault)", day3)]:
+            anomaly = detect_plant_anomalies(plant_id=plant.id, db=db, eval_date=scan_date)
+            print(f"\n  {label} — {scan_date}")
+            print(f"    Model fitted      : {anomaly.model_fitted}")
+            print(f"    Training samples  : {anomaly.training_samples}")
+            print(f"    Anomalous hours    : {len(anomaly.anomalous_hours)}")
+            for ah in anomaly.anomalous_hours:
+                print(
+                    f"      Hour {ah.hour:>2}:00 — PR {ah.performance_ratio_pct:.1f}%  "
+                    f"score={ah.anomaly_score:.4f}"
+                )
 
         print(f"\n{'='*60}")
         print("  All checks passed — simulator is working correctly.")
