@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import PlantDetailPage from './pages/PlantDetailPage'
@@ -26,8 +27,22 @@ export default function App() {
       <AuthExpiredListener />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/plants/:plantId" element={<PlantDetailPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plants/:plantId"
+          element={
+            <ProtectedRoute>
+              <PlantDetailPage />
+            </ProtectedRoute>
+          }
+        />
         {/* Default redirect — send root to dashboard; login page handles unauthed state */}
         <Route path="*" element={<Navigate to={localStorage.getItem(TOKEN_KEY) ? '/dashboard' : '/login'} replace />} />
       </Routes>

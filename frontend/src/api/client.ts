@@ -42,7 +42,13 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const url: string = error.config?.url ?? ''
+    const isAuthAttempt = url.includes('/auth/login') || url.includes('/auth/register')
+
+    // 401 on login/register is expected for bad credentials — don't treat
+    // it as a session expiry.  All other 401s clear the stale token.
+    if (status === 401 && !isAuthAttempt) {
       localStorage.removeItem(TOKEN_KEY)
       // Dispatch a custom event so App.tsx can redirect without
       // importing React Router here (keeps this file framework-agnostic).
