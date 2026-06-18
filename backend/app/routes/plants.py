@@ -11,8 +11,10 @@ from app.models.user import User
 from app.schemas.anomaly import AnomalyDetectionResponse
 from app.schemas.performance import PerformanceResponse
 from app.schemas.plant import PlantCreate, PlantResponse
+from app.schemas.sustainability import SustainabilitySummary
 from app.services.anomaly_detection import detect_plant_anomalies
 from app.services.performance import evaluate_plant_readings
+from app.services.sustainability import get_plant_co2_summary
 from app.utils.dependencies import get_current_user
 
 router = APIRouter(prefix="/plants", tags=["plants"])
@@ -150,3 +152,20 @@ def get_plant_anomalies(
         eval_date=eval_date,
         lookback_days=lookback_days,
     )
+
+
+@router.get("/{plant_id}/sustainability", response_model=SustainabilitySummary)
+def get_plant_sustainability(
+    plant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SustainabilitySummary:
+    """
+    Return lifetime CO₂ savings for a plant based on total energy generated.
+
+    Uses India's approximate grid emission factor (0.82 kg CO₂/kWh) to estimate
+    avoided emissions.  Only plant-level readings are summed so inverter-level
+    rows are not double-counted.
+    """
+    _get_owned_plant(plant_id, db, current_user)
+    return get_plant_co2_summary(plant_id=plant_id, db=db)
