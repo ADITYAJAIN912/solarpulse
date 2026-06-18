@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/*
+  SolarPulse design tokens
+  ========================
+  All colours live here as CSS custom properties so every component
+  references a named semantic token, never a raw hex.
+
+  Palette rationale
+  -----------------
+  --bg-base        Deep charcoal (#0A0A0B) — avoids the harshness of pure
+                   black while keeping the premium, focused feel of tools
+                   like Linear, Vercel, and Arc.  Slightly warm undertone
+                   so white text doesn't feel clinical.
+
+  --bg-surface     Card/panel surface (#131316) — just enough lift from the
+                   base to create depth without a visible border being
+                   necessary.  ~8 lightness steps above base.
+
+  --bg-elevated    Modal / popover layer (#1C1C21) — third tier for elements
+                   that need to float above cards.
+
+  --border         rgba(255,255,255,0.07) — nearly invisible rule.  In dark
+                   UIs heavy borders break the sense of depth; this hairline
+                   is enough for alignment without visual noise.
+
+  --accent-green   #1F6F4A — unsaturated forest green used for Healthy state
+                   indicators, success badges, and the brand wordmark accent.
+                   Deliberately dark so it reads as "calm confidence" rather
+                   than "neon status LED."
+
+  --accent-amber   #B45309 — desaturated amber for Warning.  Matches
+                   Tailwind's amber-700 in dark contexts; readable but not
+                   garish.
+
+  --accent-red     #9B1C1C — deep red for Critical.  Avoids the eye-straining
+                   brightness of #EF4444 at full saturation on a dark canvas.
+
+  --text-primary   rgba(255,255,255,0.92) — slightly off-white so extended
+                   reading feels easier than pure white.
+
+  --text-muted     rgba(255,255,255,0.45) — labels, captions, secondary info.
+                   Contrast is intentionally lower to enforce type hierarchy.
+
+  --text-subtle    rgba(255,255,255,0.25) — timestamps, dividers, de-emphasis.
+*/
+
+@theme {
+  /* --- Backgrounds --- */
+  --color-bg-base:     #0A0A0B;
+  --color-bg-surface:  #131316;
+  --color-bg-elevated: #1C1C21;
+  --color-bg-hover:    #212127;
+
+  /* --- Borders --- */
+  --color-border:       rgba(255, 255, 255, 0.07);
+  --color-border-focus: rgba(255, 255, 255, 0.20);
+
+  /* --- Accent: status colours --- */
+  --color-accent-green:    #1F6F4A;
+  --color-accent-green-bg: rgba(31, 111, 74, 0.15);
+  --color-accent-amber:    #B45309;
+  --color-accent-amber-bg: rgba(180, 83, 9, 0.15);
+  --color-accent-red:      #9B1C1C;
+  --color-accent-red-bg:   rgba(155, 28, 28, 0.15);
+
+  /* --- Text hierarchy --- */
+  --color-text-primary: rgba(255, 255, 255, 0.92);
+  --color-text-muted:   rgba(255, 255, 255, 0.45);
+  --color-text-subtle:  rgba(255, 255, 255, 0.25);
+
+  /* --- Typography --- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* --- Spacing / sizing used as shortcuts in components --- */
+  --radius-card: 10px;
+  --radius-badge: 5px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base styles                                                          */
+/* ------------------------------------------------------------------ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Scrollbar styling — thin, dark */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-focus); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
+
+/* Focus rings */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Utility classes that Tailwind v4 exposes via @theme (usable in JSX)  */
+/* ------------------------------------------------------------------ */
+
+/* e.g. className="bg-surface" */
