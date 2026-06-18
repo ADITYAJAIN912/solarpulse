@@ -1,23 +1,87 @@
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSelector'
+import PlantDetailBackNav from '@/components/plant-detail/PlantDetailBackNav'
+import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
+import PlantDetailHeader from '@/components/plant-detail/PlantDetailHeader'
+import PerformanceSummaryRow from '@/components/plant-detail/PerformanceSummaryRow'
+import {
+  PerformanceDateSelectorSkeleton,
+  PerformanceSummarySkeleton,
+  PlantDetailPageSkeleton,
+} from '@/components/plant-detail/PlantDetailSkeleton'
+import { usePlantDetail } from '@/hooks/usePlantDetail'
+
+function parsePlantId(raw: string | undefined): number | undefined {
+  if (!raw) return undefined
+  const id = Number.parseInt(raw, 10)
+  return Number.isFinite(id) ? id : undefined
+}
 
 export default function PlantDetailPage() {
-  const { plantId } = useParams<{ plantId: string }>()
+  const navigate = useNavigate()
+  const { plantId: plantIdParam } = useParams<{ plantId: string }>()
+  const plantId = parsePlantId(plantIdParam)
+
+  const {
+    plant,
+    performance,
+    selectedDate,
+    setSelectedDate,
+    isPlantLoading,
+    isPerformanceLoading,
+    plantError,
+    performanceError,
+    retryPlant,
+    retryPerformance,
+  } = usePlantDetail(plantId)
+
+  if (plantId === undefined) {
+    return (
+      <div className="min-h-screen bg-bg-base">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <PlantDetailBackNav onBack={() => navigate('/dashboard')} />
+          <PlantDetailErrorCard message="Invalid plant ID." />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <p
-        style={{ color: 'var(--color-text-muted)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}
-      >
-        SolarPulse / Plant
-      </p>
-      <h1
-        style={{ color: 'var(--color-text-primary)', fontSize: '24px', fontWeight: 600, margin: '8px 0 4px' }}
-      >
-        Plant {plantId}
-      </h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
-        Performance charts, anomaly timeline, and AI insights — implementation coming next.
-      </p>
+    <div className="min-h-screen bg-bg-base">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <PlantDetailBackNav onBack={() => navigate('/dashboard')} />
+
+        {isPlantLoading && <PlantDetailPageSkeleton />}
+
+        {!isPlantLoading && plantError && (
+          <PlantDetailErrorCard message={plantError} onRetry={retryPlant} />
+        )}
+
+        {!isPlantLoading && !plantError && plant && (
+          <>
+            <PlantDetailHeader plant={plant} />
+
+            <PerformanceDateSelector
+              value={selectedDate}
+              onChange={setSelectedDate}
+              disabled={isPerformanceLoading}
+            />
+
+            {isPerformanceLoading && <PerformanceSummarySkeleton />}
+
+            {!isPerformanceLoading && performanceError && (
+              <PlantDetailErrorCard
+                message={performanceError}
+                onRetry={retryPerformance}
+              />
+            )}
+
+            {!isPerformanceLoading && !performanceError && performance && (
+              <PerformanceSummaryRow performance={performance} />
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -12,3 +12,8 @@ export async function getPlants(): Promise<Plant[]> {
   const { data } = await apiClient.get<Plant[]>('/plants')
   return data
 }
+
+export async function getPlant(plantId: number): Promise<Plant> {
+  const { data } = await apiClient.get<Plant>(`/plants/${plantId}`)
+  return data
+}
