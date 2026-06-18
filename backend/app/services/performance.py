@@ -12,8 +12,10 @@ from datetime import date, datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.alert import Alert
+from app.models.plant import Plant
 from app.models.reading import EnergyReading
 from app.schemas.performance import FlaggedHour, PerformanceResponse
+from app.services.ai_insights import generate_root_cause_explanation
 
 # ---------------------------------------------------------------------------
 # Thresholds (match the PRD: warning < 85%, critical < 60%)
@@ -121,6 +123,9 @@ def evaluate_plant_readings(
     4. Upsert an Alert row for this plant+date if severity is warning or
        critical.  Upsert (not insert) prevents duplicate alert rows when
        the endpoint is called multiple times for the same day.
+    5. When an alert is created or updated, call Gemini for a root-cause
+       explanation and persist ai_explanation, suggested_action, root_cause,
+       and confidence_level on the Alert row.  Healthy days skip this step.
 
     Args:
         plant_id:  Database id of the Plant row.
@@ -199,6 +204,33 @@ def evaluate_plant_readings(
             alert.severity = severity
             alert.performance_ratio = round(overall_pr, 2) if overall_pr is not None else None
             alert.risk_score = risk_score
+
+        # --- Enrich alert with Gemini root-cause analysis ---
+        from app.services.anomaly_detection import detect_plant_anomalies
+
+        plant = db.get(Plant, plant_id)
+        anomaly_result = detect_plant_anomalies(
+            plant_id=plant_id, db=db, eval_date=eval_date
+        )
+        plant_data: dict = {
+            "plant_name": plant.name if plant else f"Plant {plant_id}",
+            "location": plant.location if plant else "Unknown",
+            "capacity_mw": plant.capacity_mw if plant else 0.0,
+            "date": str(eval_date),
+            "overall_pr_pct": round(overall_pr, 2) if overall_pr is not None else None,
+            "severity": severity,
+            "risk_score": risk_score,
+            "flagged_hours": [fh.model_dump() for fh in flagged_hours],
+            "anomalous_hours": [
+                ah.model_dump() for ah in anomaly_result.anomalous_hours
+            ],
+        }
+        insight = generate_root_cause_explanation(plant_data)
+        alert.ai_explanation = insight["explanation"]
+        alert.suggested_action = insight["suggested_action"]
+        alert.root_cause = insight["root_cause"]
+        alert.confidence_level = insight["confidence_level"]
+
         db.commit()
         db.refresh(alert)
         alert_id = alert.id

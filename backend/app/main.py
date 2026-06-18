@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.database import Base, engine
+from app.migrations import run_migrations
 from app.models import Alert, EnergyReading, Inverter, Plant, User  # noqa: F401
 from app.routes import auth, plants
 
@@ -10,6 +11,7 @@ from app.routes import auth, plants
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_migrations()
     yield
 
 

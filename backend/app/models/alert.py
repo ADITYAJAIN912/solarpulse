@@ -21,6 +21,8 @@ class Alert(Base):
     severity: Mapped[str] = mapped_column(String, nullable=False)
     performance_ratio: Mapped[float | None] = mapped_column(nullable=True)
     risk_score: Mapped[int | None] = mapped_column(nullable=True)
+    root_cause: Mapped[str | None] = mapped_column(String, nullable=True)
+    confidence_level: Mapped[str | None] = mapped_column(String, nullable=True)
     ai_explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     suggested_action: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

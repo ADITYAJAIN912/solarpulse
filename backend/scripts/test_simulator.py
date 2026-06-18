@@ -17,7 +17,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import Base, SessionLocal, engine
+from app.migrations import run_migrations
 from app.models import Inverter, Plant, User  # noqa: F401 — needed for create_all
+from app.models.alert import Alert
 from app.models.reading import EnergyReading
 from app.services.auth_service import hash_password
 from app.services.anomaly_detection import detect_plant_anomalies
@@ -25,6 +27,7 @@ from app.services.performance import evaluate_plant_readings
 from app.services.solar_simulator import simulate_plant_day
 
 Base.metadata.create_all(bind=engine)
+run_migrations()
 
 DEMO_EMAIL = "sim_test@solarpulse.io"
 DEMO_PLANT_NAME = "Simulator Test Plant"
@@ -161,6 +164,15 @@ def main() -> None:
         print(f"  Flagged hours     : {len(perf.flagged_hours)}")
         for fh in perf.flagged_hours:
             print(f"    Hour {fh.hour:>2}:00 — PR {fh.performance_ratio_pct:.1f}%  [{fh.severity}]")
+
+        if perf.alert_id:
+            alert = db.get(Alert, perf.alert_id)
+            if alert:
+                print(f"\n[Day 3] AI root-cause insight (Gemini) —")
+                print(f"  Root cause        : {alert.root_cause}")
+                print(f"  Confidence        : {alert.confidence_level}")
+                print(f"  Suggested action  : {alert.suggested_action}")
+                print(f"  Explanation       : {alert.ai_explanation}")
 
         # --- Anomaly detection (Isolation Forest) ---
         print(f"\n[Anomaly detection] Isolation Forest scan —")
