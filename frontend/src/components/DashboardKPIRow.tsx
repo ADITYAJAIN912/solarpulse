@@ -1,25 +1,24 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getPlantSustainability } from '@/api/sustainability'
-import KPICard from '@/components/KPICard'
+import {
+  CapacityCard,
+  Co2SavedCard,
+  FleetHealthCard,
+  TotalPlantsCard,
+} from '@/components/DashboardKPICards'
 import { fadeInUpVariants, staggerContainerVariants } from '@/lib/motion'
-import { formatFleetCo2Saved } from '@/lib/sustainability'
 import type { Plant } from '@/types'
 
 interface DashboardKPIRowProps {
   plants: Plant[]
 }
 
-function formatFleetCapacity(mw: number): string {
-  return `${mw.toLocaleString('en-US', { maximumFractionDigits: 1 })} MW`
-}
-
 export default function DashboardKPIRow({ plants }: DashboardKPIRowProps) {
   const [totalCo2Kg, setTotalCo2Kg] = useState<number | null>(null)
   const [isCo2Loading, setIsCo2Loading] = useState(true)
 
-  const totalPlants = plants.length
-  const installedCapacityMw = plants.reduce((sum, plant) => sum + plant.capacity_mw, 0)
+  const totalMw = plants.reduce((sum, p) => sum + p.capacity_mw, 0)
 
   useEffect(() => {
     if (plants.length === 0) {
@@ -34,29 +33,24 @@ export default function DashboardKPIRow({ plants }: DashboardKPIRowProps) {
     Promise.all(
       plants.map(async (plant) => {
         try {
-          const summary = await getPlantSustainability(plant.id)
-          return summary.co2_saved_kg
-        } catch (error) {
-          console.error(
-            `DashboardKPIRow: failed to fetch sustainability for plant ${plant.id}`,
-            error,
-          )
+          const s = await getPlantSustainability(plant.id)
+          return s.co2_saved_kg
+        } catch (err) {
+          console.error(`DashboardKPIRow: sustainability fetch failed for plant ${plant.id}`, err)
           return 0
         }
       }),
-    ).then((contributions) => {
+    ).then((vals) => {
       if (cancelled) return
-      setTotalCo2Kg(contributions.reduce((sum, kg) => sum + kg, 0))
+      setTotalCo2Kg(vals.reduce((a, b) => a + b, 0))
       setIsCo2Loading(false)
     })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [plants])
 
   return (
-    <section aria-label="Fleet overview" className="mb-10">
+    <section aria-label="Fleet overview" className="mb-8">
       <motion.div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
         variants={staggerContainerVariants}
@@ -64,34 +58,19 @@ export default function DashboardKPIRow({ plants }: DashboardKPIRowProps) {
         animate="animate"
       >
         <motion.div variants={fadeInUpVariants}>
-          <KPICard
-            label="Total Plants"
-            value={totalPlants.toLocaleString('en-US')}
-          />
+          <TotalPlantsCard count={plants.length} />
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>
-          <KPICard
-            label="Installed Capacity"
-            value={formatFleetCapacity(installedCapacityMw)}
-          />
+          <CapacityCard totalMw={totalMw} />
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>
-          <KPICard
-            label="Fleet Health"
-            value="Healthy"
-            status="healthy"
-          />
+          <FleetHealthCard healthPct={100} label="Healthy" />
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>
-          <KPICard
-            label="CO₂ Saved"
-            value={totalCo2Kg === null ? '—' : formatFleetCo2Saved(totalCo2Kg)}
-            hint={isCo2Loading ? undefined : 'Lifetime fleet emissions offset'}
-            isLoading={isCo2Loading}
-          />
+          <Co2SavedCard tonnes={totalCo2Kg !== null ? totalCo2Kg / 1000 : null} isLoading={isCo2Loading} />
         </motion.div>
       </motion.div>
     </section>

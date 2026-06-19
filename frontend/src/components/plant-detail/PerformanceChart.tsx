@@ -14,10 +14,10 @@ import type { HourlyReading } from '@/types'
 
 const CHART_HEIGHT = 340
 
-const COLOR_ACTUAL = 'var(--color-accent-green)'
-const COLOR_EXPECTED = 'rgba(255, 255, 255, 0.35)'
-const COLOR_AXIS = 'var(--color-text-muted)'
-const COLOR_GRID = 'rgba(255, 255, 255, 0.04)'
+const COLOR_ACTUAL   = '#16A34A'   /* green — solid */
+const COLOR_EXPECTED = '#818CF8'   /* indigo-400 — clearly visible on white */
+const COLOR_AXIS     = '#94A3B8'   /* slate-400 */
+const COLOR_GRID     = 'rgba(0,0,0,0.05)'
 
 /** Highlight gap when actual falls more than 5% below expected. */
 const GAP_THRESHOLD_PCT = 5
@@ -92,7 +92,7 @@ function PerformanceTooltip({ active, label, payload }: PerformanceTooltipProps)
 
   return (
     <div
-      className="rounded-[var(--radius-badge)] border border-[var(--color-border)] bg-bg-elevated px-3 py-2.5 shadow-sm"
+      className="rounded-xl border border-[rgba(0,0,0,0.08)] bg-white px-3 py-2.5 shadow-md"
       style={{ minWidth: 180 }}
     >
       <p className="mb-2 text-xs font-medium text-text-primary">{label}</p>
@@ -214,16 +214,21 @@ export default function PerformanceChart({
                 <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{value}</span>
               )}
             />
+            {/* Expected — drawn first so it sits behind the actual line */}
             <Line
               type="monotone"
               dataKey="expected"
               name="Expected Output"
               stroke={COLOR_EXPECTED}
-              strokeWidth={1.5}
-              strokeDasharray="5 4"
+              strokeWidth={2}
+              strokeDasharray="6 4"
               dot={false}
-              activeDot={{ r: 3, fill: COLOR_EXPECTED, strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: COLOR_EXPECTED, stroke: '#fff', strokeWidth: 2 }}
+              isAnimationActive
+              animationDuration={1200}
+              animationEasing="ease-out"
             />
+            {/* Actual — drawn on top, thicker */}
             <Line
               type="monotone"
               dataKey="actual"
@@ -231,7 +236,10 @@ export default function PerformanceChart({
               stroke={COLOR_ACTUAL}
               strokeWidth={2.5}
               dot={false}
-              activeDot={{ r: 4, fill: COLOR_ACTUAL, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: COLOR_ACTUAL, stroke: '#fff', strokeWidth: 2 }}
+              isAnimationActive
+              animationDuration={1400}
+              animationEasing="ease-out"
             />
           </LineChart>
         </ResponsiveContainer>

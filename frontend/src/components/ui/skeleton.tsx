@@ -7,7 +7,10 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-[var(--radius-badge)] bg-bg-hover', className)}
+      className={cn(
+        'animate-pulse rounded-[var(--radius-badge)] bg-[#E2E2DC]',
+        className,
+      )}
       aria-hidden
     />
   )

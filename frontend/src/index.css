@@ -1,89 +1,36 @@
+/* Google Fonts — Space Grotesk for display numerics */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+
 @import "tailwindcss";
 
-/*
-  SolarPulse design tokens
-  ========================
-  All colours live here as CSS custom properties so every component
-  references a named semantic token, never a raw hex.
-
-  Palette rationale
-  -----------------
-  --bg-base        Deep charcoal (#0A0A0B) — avoids the harshness of pure
-                   black while keeping the premium, focused feel of tools
-                   like Linear, Vercel, and Arc.  Slightly warm undertone
-                   so white text doesn't feel clinical.
-
-  --bg-surface     Card/panel surface (#131316) — just enough lift from the
-                   base to create depth without a visible border being
-                   necessary.  ~8 lightness steps above base.
-
-  --bg-elevated    Modal / popover layer (#1C1C21) — third tier for elements
-                   that need to float above cards.
-
-  --border         rgba(255,255,255,0.07) — nearly invisible rule.  In dark
-                   UIs heavy borders break the sense of depth; this hairline
-                   is enough for alignment without visual noise.
-
-  --accent-green   #1F6F4A — unsaturated forest green used for Healthy state
-                   indicators, success badges, and the brand wordmark accent.
-                   Deliberately dark so it reads as "calm confidence" rather
-                   than "neon status LED."
-
-  --accent-amber   #B45309 — desaturated amber for Warning.  Matches
-                   Tailwind's amber-700 in dark contexts; readable but not
-                   garish.
-
-  --accent-red     #9B1C1C — deep red for Critical.  Avoids the eye-straining
-                   brightness of #EF4444 at full saturation on a dark canvas.
-
-  --text-primary   rgba(255,255,255,0.92) — slightly off-white so extended
-                   reading feels easier than pure white.
-
-  --text-muted     rgba(255,255,255,0.45) — labels, captions, secondary info.
-                   Contrast is intentionally lower to enforce type hierarchy.
-
-  --text-subtle    rgba(255,255,255,0.25) — timestamps, dividers, de-emphasis.
-*/
-
 @theme {
-  /* --- Backgrounds --- */
-  --color-bg-base:     #0A0A0B;
-  --color-bg-surface:  #131316;
-  --color-bg-elevated: #1C1C21;
-  --color-bg-hover:    #212127;
+  --color-bg-base:     #F8F8F4;
+  --color-bg-surface:  #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-hover:    #EEEEE9;
 
-  /* --- Borders --- */
-  --color-border:       rgba(255, 255, 255, 0.07);
-  --color-border-focus: rgba(255, 255, 255, 0.20);
+  --color-border:       rgba(0, 0, 0, 0.07);
+  --color-border-focus: rgba(0, 0, 0, 0.22);
 
-  /* --- Accent: status colours --- */
-  --color-accent-green:    #1F6F4A;
-  --color-accent-green-bg: rgba(31, 111, 74, 0.15);
-  --color-accent-amber:    #B45309;
-  --color-accent-amber-bg: rgba(180, 83, 9, 0.15);
-  --color-accent-red:      #9B1C1C;
-  --color-accent-red-bg:   rgba(155, 28, 28, 0.15);
+  --color-accent-green:    #16A34A;
+  --color-accent-green-bg: rgba(22, 163, 74, 0.09);
+  --color-accent-amber:    #D97706;
+  --color-accent-amber-bg: rgba(217, 119, 6, 0.09);
+  --color-accent-red:      #DC2626;
+  --color-accent-red-bg:   rgba(220, 38, 38, 0.09);
 
-  /* --- Text hierarchy --- */
-  --color-text-primary: rgba(255, 255, 255, 0.92);
-  --color-text-muted:   rgba(255, 255, 255, 0.45);
-  --color-text-subtle:  rgba(255, 255, 255, 0.25);
+  --color-text-primary: #0D0D0B;
+  --color-text-muted:   rgba(13, 13, 11, 0.48);
+  --color-text-subtle:  rgba(13, 13, 11, 0.26);
 
-  /* --- Typography --- */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-
-  /* --- Spacing / sizing used as shortcuts in components --- */
-  --radius-card: 10px;
-  --radius-badge: 5px;
+  --font-sans: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --radius-card:  16px;
+  --radius-badge: 6px;
 }
 
-/* ------------------------------------------------------------------ */
-/* Base styles                                                          */
-/* ------------------------------------------------------------------ */
-
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+/* ── Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
   -webkit-font-smoothing: antialiased;
@@ -101,20 +48,63 @@ body {
   min-height: 100dvh;
 }
 
-/* Scrollbar styling — thin, dark */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border-focus); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
 
-/* Focus rings */
-:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
+:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+
+/* ── Animated gradient text ─────────────────────────────────────────── */
+@keyframes gradient-pan {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* ------------------------------------------------------------------ */
-/* Utility classes that Tailwind v4 exposes via @theme (usable in JSX)  */
-/* ------------------------------------------------------------------ */
+.gradient-text {
+  background: linear-gradient(90deg, #16A34A 0%, #6366F1 40%, #0EA5E9 70%, #16A34A 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-pan 5s linear infinite;
+}
 
-/* e.g. className="bg-surface" */
+/* ── Shimmering border animation ─────────────────────────────────────── */
+@keyframes border-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.shimmer-border {
+  background: linear-gradient(90deg,
+    rgba(22,163,74,0.3) 0%,
+    rgba(99,102,241,0.5) 25%,
+    rgba(14,165,233,0.5) 50%,
+    rgba(22,163,74,0.3) 75%,
+    rgba(99,102,241,0.5) 100%
+  );
+  background-size: 400% auto;
+  animation: border-shimmer 6s linear infinite;
+}
+
+/* ── Tabular numerics ─────────────────────────────────────────────────── */
+.nums {
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Dot grid pattern ─────────────────────────────────────────────────── */
+.dot-grid-bg {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.055) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ── Premium card glow on hover ───────────────────────────────────────── */
+.card-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(22,163,74,0.15),
+    0 8px 32px rgba(0,0,0,0.10),
+    0 2px 8px rgba(0,0,0,0.06);
+}

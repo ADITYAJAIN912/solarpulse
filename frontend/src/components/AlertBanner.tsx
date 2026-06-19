@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertTriangle, ChevronRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getPlantPerformance } from '@/api/performance'
 import SeverityBadge from '@/components/SeverityBadge'
@@ -54,32 +54,21 @@ export default function AlertBanner({ plants, className }: AlertBannerProps) {
         try {
           const performance = await getPlantPerformance(plant.id, ALERT_BANNER_DEMO_DATE)
           if (isFlaggedSeverity(performance.severity)) {
-            return {
-              plant,
-              severity: performance.severity,
-              riskScore: performance.risk_score,
-            }
+            return { plant, severity: performance.severity, riskScore: performance.risk_score }
           }
           return null
         } catch (error) {
-          console.error(
-            `AlertBanner: failed to fetch performance for plant ${plant.id}`,
-            error,
-          )
+          console.error(`AlertBanner: failed to fetch performance for plant ${plant.id}`, error)
           return null
         }
       }),
     ).then((results) => {
       if (cancelled) return
-      setFlaggedPlants(
-        results.filter((result): result is FlaggedPlant => result !== null),
-      )
+      setFlaggedPlants(results.filter((r): r is FlaggedPlant => r !== null))
       setIsChecking(false)
     })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [plants])
 
   const plantCount = flaggedPlants.length
@@ -101,70 +90,65 @@ export default function AlertBanner({ plants, className }: AlertBannerProps) {
           animate="animate"
           exit="exit"
           className={cn(
-            'rounded-[var(--radius-card)] border border-accent-amber/25 border-l-2 border-l-accent-amber bg-bg-surface px-5 py-4',
+            'overflow-hidden rounded-[var(--radius-card)] border border-amber-200/80 bg-amber-50',
             className,
           )}
         >
-      <button
-        type="button"
-        onClick={() => navigateToPlant(flaggedPlants[0].plant.id)}
-        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] rounded-[var(--radius-badge)]"
-      >
-        <div className="flex items-start gap-3">
-          <AlertTriangle
-            className="mt-0.5 h-4 w-4 shrink-0 text-accent-amber"
-            aria-hidden
-          />
+          {/* Header — clickable, goes to first flagged plant */}
+          <button
+            type="button"
+            onClick={() => navigateToPlant(flaggedPlants[0].plant.id)}
+            className="w-full px-6 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {/* Pulsing amber dot */}
+                <span className="relative flex h-3 w-3 shrink-0" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-60" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500" />
+                </span>
 
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-text-primary">Attention Required</h2>
-            <p className="mt-0.5 text-sm text-text-muted">
-              {plantCount} {plantLabel} operating below expected performance
-            </p>
-          </div>
-
-          <span className="hidden shrink-0 items-center gap-1 text-xs font-medium text-accent-amber sm:inline-flex">
-            Review AI Analysis
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-          </span>
-        </div>
-      </button>
-
-      <ul className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
-        {flaggedPlants.map(({ plant, severity, riskScore }) => (
-          <li key={plant.id}>
-            <button
-              type="button"
-              onClick={() => navigateToPlant(plant.id)}
-              className={cn(
-                'flex w-full items-center justify-between gap-3 rounded-[var(--radius-badge)] px-2 py-2 text-left transition-colors',
-                'hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]',
-              )}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-text-primary">{plant.name}</p>
-                <p className="mt-0.5 text-xs text-text-muted">
-                  Risk score {formatRiskScore(riskScore)}
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Attention Required</p>
+                  <p className="mt-0.5 text-xs text-amber-700">
+                    {plantCount} {plantLabel} operating below expected performance
+                  </p>
+                </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <SeverityBadge severity={severity} />
-                <ChevronRight className="h-3.5 w-3.5 text-text-subtle" aria-hidden />
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
+              <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-amber-700 sm:flex">
+                Review AI Analysis
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </span>
+            </div>
+          </button>
 
-      <button
-        type="button"
-        onClick={() => navigateToPlant(flaggedPlants[0].plant.id)}
-        className="mt-3 flex w-full items-center justify-center gap-1 border-t border-[var(--color-border)] pt-3 text-xs font-medium text-accent-amber sm:hidden"
-      >
-        Review AI Analysis
-        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-      </button>
+          {/* Flagged plant rows */}
+          {flaggedPlants.length > 0 && (
+            <ul className="border-t border-amber-200/60 divide-y divide-amber-200/40">
+              {flaggedPlants.map(({ plant, severity, riskScore }) => (
+                <li key={plant.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigateToPlant(plant.id)}
+                    className="flex w-full items-center justify-between gap-3 px-6 py-3 text-left transition-colors hover:bg-amber-100/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-amber-900">{plant.name}</p>
+                      <p className="mt-0.5 text-xs text-amber-600">
+                        Risk score {formatRiskScore(riskScore)}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SeverityBadge severity={severity} />
+                      <ArrowRight className="h-3.5 w-3.5 text-amber-400" aria-hidden />
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </motion.section>
       )}
     </AnimatePresence>

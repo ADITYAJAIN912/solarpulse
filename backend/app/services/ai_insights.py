@@ -1,13 +1,13 @@
 """
-AI root-cause analysis for SolarPulse alerts via the Gemini API.
+AI root-cause analysis for SolarPulse alerts via the Groq API.
 
 When a plant is flagged Warning or Critical, this service sends structured
-performance context to Gemini and receives a constrained root-cause
-diagnosis with a concrete maintenance action.
+performance context to a Groq-hosted LLM (default: llama-3.3-70b-versatile)
+and receives a constrained root-cause diagnosis with a concrete maintenance action.
 
 Prompt design choices
 ---------------------
-1. Fixed root-cause taxonomy — Gemini must pick exactly one label from a
+1. Fixed root-cause taxonomy — the model must pick exactly one label from a
    closed list so the dashboard can filter, badge, and route alerts
    consistently.  Free-text causes would fragment analytics.
 
@@ -17,11 +17,12 @@ Prompt design choices
    mechanistic narrative: what failed, why that failure would produce the
    observed hourly pattern, and why alternative causes are less likely.
 
-3. JSON response mode — response_mime_type=application/json eliminates
-   markdown fences and makes parsing reliable in production.
+3. JSON response mode — response_format={"type": "json_object"} (OpenAI-
+   compatible) eliminates markdown fences and makes parsing reliable in
+   production.
 
 4. ML context injection — Isolation Forest anomaly scores are included when
-   available so Gemini can distinguish a broad weather dip from a sharp,
+   available so the LLM can distinguish a broad weather dip from a sharp,
    localized deviation at specific peak-sun hours.
 
 5. Graceful degradation — Any API failure returns a safe fallback dict so
@@ -33,9 +34,9 @@ import logging
 import re
 from typing import Any
 
-import google.generativeai as genai
+from groq import Groq
 
-from app.config import GEMINI_API_KEY, GEMINI_MODEL
+from app.config import GROQ_API_KEY, GROQ_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -52,29 +53,64 @@ ROOT_CAUSES: list[str] = [
 
 VALID_CONFIDENCE_LEVELS: set[str] = {"low", "medium", "high"}
 
-GEMINI_TIMEOUT_SECONDS: int = 30
+GROQ_TIMEOUT_SECONDS: int = 30
 
 
 def _fallback_response(reason: str = "unavailable") -> dict[str, str]:
-    """Return a safe default when Gemini cannot be reached or returns invalid data."""
+    """
+    Return a safe default when Gemini cannot be reached or returns invalid data.
+
+    The reason string is intentionally kept out of the user-facing explanation
+    to avoid exposing raw API errors in the dashboard.
+    It is only emitted to the server log.
+    """
+    logger.warning("AI insight fallback triggered — reason: %s", reason)
+
+    # Detect quota / rate-limit errors so we can give a more specific message.
+    quota_hit = (
+        "429" in reason
+        or "quota" in reason.lower()
+        or "rate_limit" in reason.lower()
+        or "billing" in reason.lower()
+    )
+
+    if quota_hit:
+        explanation = (
+            "Automated AI analysis could not be generated for this alert because "
+            "the Groq API rate limit has been reached. "
+            "The fault pattern data is still available above — review the flagged "
+            "hours and compare plant-level output against inverter-level readings "
+            "to localise the issue manually."
+        )
+        action = (
+            "1. Inspect Inverter A and Inverter B event logs for the flagged hour window. "
+            "2. Compare string-level current readings to isolate which sub-array is affected. "
+            "3. Check for physical obstructions, soiling, or loose DC connections. "
+            "To restore AI analysis, wait a moment for the rate limit window to reset, "
+            "then revisit this plant's detail page."
+        )
+    else:
+        explanation = (
+            "Automated AI analysis was temporarily unavailable when this alert was created. "
+            "Review the flagged hours above and compare plant-level versus inverter-level "
+            "output to narrow the fault locally."
+        )
+        action = (
+            "Pull inverter event logs and SCADA trend data for the flagged hours. "
+            "Dispatch a technician for a string-level continuity check if "
+            "underperformance persists beyond 24 hours."
+        )
+
     return {
         "root_cause": "unknown",
-        "explanation": (
-            "AI root-cause analysis was unavailable at the time of this alert "
-            f"({reason}). Review the flagged hours and compare plant-level vs "
-            "inverter-level output to narrow the fault locally."
-        ),
-        "suggested_action": (
-            "Pull inverter event logs and SCADA trend data for the flagged hours; "
-            "dispatch a technician for a string-level continuity check if "
-            "underperformance persists beyond 24 hours."
-        ),
+        "explanation": explanation,
+        "suggested_action": action,
         "confidence_level": "low",
     }
 
 
 def _build_prompt(plant_data: dict[str, Any]) -> str:
-    """Assemble the user prompt with all performance context for Gemini."""
+    """Assemble the user prompt with all performance context."""
     flagged_lines: list[str] = []
     for fh in plant_data.get("flagged_hours", []):
         flagged_lines.append(
@@ -146,7 +182,7 @@ Respond with strict JSON only — no markdown, no extra keys:
 
 
 def _extract_json(text: str) -> dict[str, Any]:
-    """Parse JSON from Gemini output, stripping optional markdown fences."""
+    """Parse JSON from LLM output, stripping optional markdown fences."""
     cleaned = text.strip()
     fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
     if fence_match:
@@ -155,7 +191,7 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 def _validate_and_normalize(parsed: dict[str, Any]) -> dict[str, str]:
-    """Ensure Gemini output matches the required schema and allowed values."""
+    """Ensure LLM output matches the required schema and allowed values."""
     root_cause = parsed.get("root_cause", "unknown")
     if root_cause not in ROOT_CAUSES:
         root_cause = "unknown"
@@ -168,7 +204,7 @@ def _validate_and_normalize(parsed: dict[str, Any]) -> dict[str, str]:
     suggested_action = str(parsed.get("suggested_action", "")).strip()
 
     if not explanation or not suggested_action:
-        raise ValueError("Gemini response missing explanation or suggested_action")
+        raise ValueError("LLM response missing explanation or suggested_action")
 
     return {
         "root_cause": root_cause,
@@ -180,7 +216,7 @@ def _validate_and_normalize(parsed: dict[str, Any]) -> dict[str, str]:
 
 def generate_root_cause_explanation(plant_data: dict[str, Any]) -> dict[str, str]:
     """
-    Call Gemini to produce a root-cause diagnosis for a plant underperformance alert.
+    Call the Groq API to produce a root-cause diagnosis for a plant underperformance alert.
 
     Args:
         plant_data: Context dict with keys:
@@ -192,32 +228,39 @@ def generate_root_cause_explanation(plant_data: dict[str, Any]) -> dict[str, str
         Dict with keys: root_cause, explanation, suggested_action, confidence_level.
         On any failure, returns a graceful fallback with root_cause="unknown".
     """
-    if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY is not set — returning fallback insight")
+    if not GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY is not set — returning fallback insight")
         return _fallback_response("API key not configured")
 
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json",
-                temperature=0.3,
-            ),
-        )
+        client = Groq(api_key=GROQ_API_KEY, timeout=GROQ_TIMEOUT_SECONDS)
 
         prompt = _build_prompt(plant_data)
-        response = model.generate_content(
-            prompt,
-            request_options={"timeout": GEMINI_TIMEOUT_SECONDS},
+
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior solar plant reliability engineer. "
+                        "Always respond with strict JSON only — no markdown, "
+                        "no explanation outside the JSON object."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
         )
 
-        if not response.text:
-            raise ValueError("Gemini returned an empty response")
+        raw_text = completion.choices[0].message.content or ""
+        if not raw_text.strip():
+            raise ValueError("Groq returned an empty response")
 
-        parsed = _extract_json(response.text)
+        parsed = _extract_json(raw_text)
         return _validate_and_normalize(parsed)
 
     except Exception as exc:
-        logger.warning("Gemini root-cause analysis failed: %s", exc)
-        return _fallback_response(str(exc)[:120])
+        logger.warning("Groq root-cause analysis failed: %s", exc)
+        return _fallback_response(str(exc)[:200])
