@@ -46,7 +46,11 @@ export interface PlantCreate {
 // ---------------------------------------------------------------------------
 
 export type Severity = 'healthy' | 'warning' | 'critical'
-
+export interface HourlyReading {
+  hour: number
+  actual_output_kwh: number
+  expected_output_kwh: number
+}
 export interface FlaggedHour {
   hour: number
   actual_output_kwh: number
@@ -61,6 +65,9 @@ export interface PerformanceSummary {
   overall_pr_pct: number | null
   risk_score: number | null
   severity: Severity | null
+  hourly_readings: HourlyReading[]
+
+  
   flagged_hours: FlaggedHour[]
   alert_id: number | null
 }
