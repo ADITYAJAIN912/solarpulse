@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSelector'
 import PlantDetailBackNav from '@/components/plant-detail/PlantDetailBackNav'
 import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
@@ -19,10 +19,17 @@ function parsePlantId(raw: string | undefined): number | undefined {
   return Number.isFinite(id) ? id : undefined
 }
 
+function parseDateParam(raw: string | null): string | undefined {
+  if (!raw) return undefined
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined
+}
+
 export default function PlantDetailPage() {
   const navigate = useNavigate()
   const { plantId: plantIdParam } = useParams<{ plantId: string }>()
+  const [searchParams] = useSearchParams()
   const plantId = parsePlantId(plantIdParam)
+  const initialDate = parseDateParam(searchParams.get('date'))
 
   const {
     plant,
@@ -35,7 +42,7 @@ export default function PlantDetailPage() {
     performanceError,
     retryPlant,
     retryPerformance,
-  } = usePlantDetail(plantId)
+  } = usePlantDetail(plantId, initialDate)
 
   if (plantId === undefined) {
     return (

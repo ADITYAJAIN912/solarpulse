@@ -19,14 +19,23 @@ interface UsePlantDetailResult {
   retryPerformance: () => void
 }
 
-export function usePlantDetail(plantId: number | undefined): UsePlantDetailResult {
+export function usePlantDetail(
+  plantId: number | undefined,
+  initialDate?: string,
+): UsePlantDetailResult {
   const [plant, setPlant] = useState<Plant | null>(null)
   const [performance, setPerformance] = useState<PerformanceSummary | null>(null)
-  const [selectedDate, setSelectedDate] = useState(DEFAULT_PERFORMANCE_DATE)
+  const [selectedDate, setSelectedDate] = useState(initialDate ?? DEFAULT_PERFORMANCE_DATE)
   const [isPlantLoading, setIsPlantLoading] = useState(true)
   const [isPerformanceLoading, setIsPerformanceLoading] = useState(true)
   const [plantError, setPlantError] = useState<string | null>(null)
   const [performanceError, setPerformanceError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(initialDate)
+    }
+  }, [initialDate])
 
   const fetchPlant = useCallback(async () => {
     if (plantId === undefined) return

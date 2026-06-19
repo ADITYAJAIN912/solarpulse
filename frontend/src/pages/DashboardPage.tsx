@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getPlants } from '@/api/plants'
+import AlertBanner from '@/components/AlertBanner'
 import DashboardKPIRow from '@/components/DashboardKPIRow'
 import PlantCard from '@/components/PlantCard'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,10 @@ export default function DashboardPage() {
         </header>
 
         {!isLoading && !error && <DashboardKPIRow plants={plants} />}
+
+        {!isLoading && !error && plants.length > 0 && (
+          <AlertBanner className="mb-10" plants={plants} />
+        )}
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center gap-3 py-24 text-text-muted">
