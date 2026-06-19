@@ -3,6 +3,8 @@ import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSe
 import PlantDetailBackNav from '@/components/plant-detail/PlantDetailBackNav'
 import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
 import PlantDetailHeader from '@/components/plant-detail/PlantDetailHeader'
+import AIInsightCard from '@/components/plant-detail/AIInsightCard'
+import PerformanceChart from '@/components/plant-detail/PerformanceChart'
 import PerformanceSummaryRow from '@/components/plant-detail/PerformanceSummaryRow'
 import {
   PerformanceDateSelectorSkeleton,
@@ -79,6 +81,20 @@ export default function PlantDetailPage() {
             {!isPerformanceLoading && !performanceError && performance && (
               <PerformanceSummaryRow performance={performance} />
             )}
+
+            {!performanceError && (
+              <PerformanceChart
+                className="mt-10"
+                hourlyReadings={performance?.hourly_readings ?? []}
+                date={performance?.date ?? selectedDate}
+                isLoading={isPerformanceLoading}
+              />
+            )}
+
+            <AIInsightCard
+              className="mt-10"
+              alertId={performance?.alert_id ?? null}
+            />
           </>
         )}
       </div>

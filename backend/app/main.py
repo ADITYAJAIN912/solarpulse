@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.migrations import run_migrations
 from app.models import Alert, EnergyReading, Inverter, Plant, User  # noqa: F401
-from app.routes import auth, plants
+from app.routes import alerts, auth, plants
 
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(plants.router)
+app.include_router(alerts.router)
 
 
 @app.get("/")
