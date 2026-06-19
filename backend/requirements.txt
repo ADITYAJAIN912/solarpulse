@@ -4,6 +4,8 @@ sqlalchemy
 python-jose
 bcrypt
 python-dotenv
-google-generativeai
+groq
 pydantic[email]
 scikit-learn
+httpx
+pytest

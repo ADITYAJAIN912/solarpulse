@@ -62,11 +62,14 @@ export default function DashboardKPIRow({ plants }: DashboardKPIRowProps) {
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>
-          <CapacityCard totalMw={totalMw} />
+          <CapacityCard totalMw={totalMw} plantCount={plants.length} />
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>
-          <FleetHealthCard healthPct={100} label="Healthy" />
+          <FleetHealthCard
+            healthPct={plants.length === 0 ? 0 : 100}
+            label={plants.length === 0 ? 'No data' : 'Healthy'}
+          />
         </motion.div>
 
         <motion.div variants={fadeInUpVariants}>

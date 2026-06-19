@@ -10,10 +10,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LogOut, RefreshCw, Sun, Zap } from 'lucide-react'
+import { LogOut, Plus, RefreshCw, Sun, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { TOKEN_KEY } from '@/api/client'
 import { getPlants } from '@/api/plants'
+import AddPlantModal from '@/components/AddPlantModal'
 import AlertBanner from '@/components/AlertBanner'
 import DashboardKPIRow from '@/components/DashboardKPIRow'
 import LocationCard from '@/components/LocationCard'
@@ -76,6 +77,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const fetchPlants = useCallback(async () => {
     setIsLoading(true)
@@ -107,6 +109,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F7F7F3]">
 
+      <AddPlantModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={(newPlant) => setPlants(prev => [...prev, newPlant])}
+      />
+
       {/* ── Sticky topbar ──────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-[rgba(0,0,0,0.07)] bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 h-14">
@@ -135,11 +143,18 @@ export default function DashboardPage() {
               <RefreshCw size={13} />
             </button>
             <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-[11.5px] font-semibold text-green-700 transition-colors hover:bg-green-100"
+            >
+              <Plus size={13} />
+              <span className="hidden sm:inline">Add Plant</span>
+            </button>
+            <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-text-muted transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
             >
               <LogOut size={12} />
-              Sign out
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>

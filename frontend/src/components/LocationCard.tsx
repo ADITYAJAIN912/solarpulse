@@ -242,12 +242,16 @@ export default function LocationCard({ plant, className = '' }: LocationCardProp
         </div>
       </div>
 
-      {/* ── Stats grid ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 px-5 pb-5 sm:grid-cols-4">
-        <StatChip icon={<Sun size={15} />}         label="GHI"        value="6.2 kWh/m²" color="#D97706" />
-        <StatChip icon={<Thermometer size={15} />} label="Avg Temp"   value="38°C"        color="#EA580C" />
-        <StatChip icon={<Wind size={15} />}         label="Wind"       value="14 km/h"     color="#6366F1" />
-        <StatChip icon={<Compass size={15} />}      label="Climate"    value="Hot Arid"    color="#16A34A" />
+      {/* ── Regional reference stats ──────────────────────────────── */}
+      <div className="border-t border-[rgba(0,0,0,0.05)] bg-amber-50/40 px-5 py-2 flex items-center gap-1.5">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-700/70">Regional climate reference</span>
+        <span className="text-[9px] text-amber-600/50">· Thar Desert solar corridor · not live sensor data</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 px-5 pb-5 pt-3 sm:grid-cols-4">
+        <StatChip icon={<Sun size={15} />}         label="Avg. Regional GHI" value="6.2 kWh/m²" color="#D97706" />
+        <StatChip icon={<Thermometer size={15} />} label="Typical Temp"      value="~38°C"       color="#EA580C" />
+        <StatChip icon={<Wind size={15} />}         label="Avg. Wind"         value="~14 km/h"    color="#6366F1" />
+        <StatChip icon={<Compass size={15} />}      label="Climate Zone"      value="Hot Arid"    color="#16A34A" />
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────── */}

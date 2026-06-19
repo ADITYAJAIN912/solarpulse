@@ -20,10 +20,12 @@ import {
   Zap,
 } from 'lucide-react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { login } from '@/api/auth'
+import { login, register } from '@/api/auth'
 import { TOKEN_KEY } from '@/api/client'
 import SolarIllustration from '@/components/SolarIllustration'
 import { getApiErrorMessage } from '@/lib/errors'
+
+type Mode = 'signin' | 'register'
 
 /* ── Stagger helpers ───────────────────────────────────────────────── */
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -71,27 +73,6 @@ function Feature({ icon, title, desc, delay }: FeatureProps) {
   )
 }
 
-/* ── Stat pill ─────────────────────────────────────────────────────── */
-function StatPill({
-  value,
-  label,
-  delay,
-}: {
-  value: string
-  label: string
-  delay: number
-}) {
-  return (
-    <FadeUp delay={delay} className="flex flex-col items-center gap-0.5">
-      <span className="nums text-[1.6rem] font-black leading-none text-white">
-        {value}
-      </span>
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-green-300/80">
-        {label}
-      </span>
-    </FadeUp>
-  )
-}
 
 /* ── Animated char heading ─────────────────────────────────────────── */
 function SplitHeading({ lines }: { lines: { text: string; delay: number }[] }) {
@@ -125,24 +106,47 @@ export default function LoginPage() {
   const location  = useLocation()
   const from      = (location.state as { from?: string } | null)?.from ?? '/dashboard'
 
-  const [email,        setEmail]        = useState('')
-  const [password,     setPassword]     = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [fieldErrors,  setFieldErrors]  = useState({ email: '', password: '' })
+  const [mode,            setMode]           = useState<Mode>('signin')
+  const [email,           setEmail]          = useState('')
+  const [password,        setPassword]       = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword,    setShowPassword]   = useState(false)
+  const [error,           setError]          = useState<string | null>(null)
+  const [isSubmitting,    setIsSubmitting]   = useState(false)
+  const [fieldErrors,     setFieldErrors]    = useState({ email: '', password: '', confirm: '' })
 
   if (localStorage.getItem(TOKEN_KEY)) {
     return <Navigate to="/dashboard" replace />
   }
 
+  function switchMode(next: Mode) {
+    setMode(next)
+    setError(null)
+    setFieldErrors({ email: '', password: '', confirm: '' })
+    setConfirmPassword('')
+  }
+
   function validate() {
-    const errs = { email: '', password: '' }
-    if (!email.trim())   errs.email    = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email'
-    if (!password)       errs.password = 'Password is required'
+    const errs = { email: '', password: '', confirm: '' }
+    if (!email.trim())
+      errs.email = 'Email is required'
+    else if (!/\S+@\S+\.\S+/.test(email))
+      errs.email = 'Enter a valid email'
+
+    if (!password)
+      errs.password = 'Password is required'
+    else if (mode === 'register' && password.length < 8)
+      errs.password = 'Password must be at least 8 characters'
+
+    if (mode === 'register') {
+      if (!confirmPassword)
+        errs.confirm = 'Please confirm your password'
+      else if (confirmPassword !== password)
+        errs.confirm = 'Passwords do not match'
+    }
+
     setFieldErrors(errs)
-    return !errs.email && !errs.password
+    return !errs.email && !errs.password && !errs.confirm
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -152,11 +156,21 @@ export default function LoginPage() {
 
     setIsSubmitting(true)
     try {
-      const { access_token } = await login({ email: email.trim(), password })
-      localStorage.setItem(TOKEN_KEY, access_token)
+      if (mode === 'register') {
+        await register({ email: email.trim(), password })
+        // Auto-login immediately after successful registration
+        const { access_token } = await login({ email: email.trim(), password })
+        localStorage.setItem(TOKEN_KEY, access_token)
+      } else {
+        const { access_token } = await login({ email: email.trim(), password })
+        localStorage.setItem(TOKEN_KEY, access_token)
+      }
       navigate(from, { replace: true })
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Invalid email or password. Please try again.'))
+      const defaultMsg = mode === 'register'
+        ? 'Could not create account. Please try again.'
+        : 'Invalid email or password. Please try again.'
+      setError(getApiErrorMessage(err, defaultMsg))
     } finally {
       setIsSubmitting(false)
     }
@@ -267,21 +281,22 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Stats strip */}
+          {/* Platform capabilities strip */}
           <FadeUp delay={1.1}>
             <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10 backdrop-blur-sm">
-              <div className="flex items-center justify-around gap-4">
-                <StatPill value="2"      label="Plants"    delay={1.15} />
-                <div className="h-10 w-px bg-white/10" />
-                <StatPill value="100"    label="MW Total"  delay={1.2}  />
-                <div className="h-10 w-px bg-white/10" />
-                <StatPill value="6.2"    label="kWh/m²/d"  delay={1.25} />
-                <div className="h-10 w-px bg-white/10" />
-                <StatPill value="24/7"   label="Monitored" delay={1.3}  />
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: '⚡', text: 'Real-time performance ratio tracking per plant' },
+                  { icon: '🤖', text: 'LLM-powered root-cause analysis on fault alerts' },
+                  { icon: '🌿', text: 'CO₂ avoided & sustainability reporting' },
+                  { icon: '📍', text: 'GPS-mapped fleet · Jaisalmer solar corridor' },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-[13px]">{icon}</span>
+                    <p className="text-[11px] leading-relaxed text-white/60">{text}</p>
+                  </div>
+                ))}
               </div>
-              <p className="mt-3 text-center text-[10.5px] text-green-300/60">
-                📍 Jaisalmer, Rajasthan · Thar Desert · India
-              </p>
             </div>
           </FadeUp>
         </div>
@@ -303,18 +318,40 @@ export default function LoginPage() {
             <span className="text-[15px] font-bold text-text-primary">SolarPulse</span>
           </div>
 
+          {/* Mode toggle */}
+          <div className="mb-8 flex gap-1 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#F7F7F3] p-1">
+            {(['signin', 'register'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => switchMode(m)}
+                className={`flex-1 rounded-lg py-2 text-[12.5px] font-semibold transition-all duration-200 ${
+                  mode === m
+                    ? 'bg-white text-text-primary shadow-sm ring-1 ring-[rgba(0,0,0,0.07)]'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                {m === 'signin' ? 'Sign in' : 'Create account'}
+              </button>
+            ))}
+          </div>
+
           {/* Heading */}
           <div className="mb-8">
             <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              Fleet Access
+              {mode === 'signin' ? 'Fleet Access' : 'New Account'}
             </p>
             <h2 className="mt-1.5 text-[1.75rem] font-black leading-tight tracking-tight text-text-primary">
-              Sign in to your
-              <br />
-              <span className="gradient-text">account.</span>
+              {mode === 'signin' ? (
+                <>Sign in to your<br /><span className="gradient-text">account.</span></>
+              ) : (
+                <>Create your<br /><span className="gradient-text">account.</span></>
+              )}
             </h2>
             <p className="mt-2 text-[13px] text-text-muted">
-              Enter your credentials to access the solar fleet dashboard.
+              {mode === 'signin'
+                ? 'Enter your credentials to access the solar fleet dashboard.'
+                : 'Register to start monitoring your solar fleet.'}
             </p>
           </div>
 
@@ -370,7 +407,7 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })) }}
@@ -391,6 +428,50 @@ export default function LoginPage() {
                 <p className="text-[11px] font-medium text-red-500">{fieldErrors.password}</p>
               )}
             </div>
+
+            {/* Confirm password — register mode only */}
+            <AnimatePresence>
+              {mode === 'register' && (
+                <motion.div
+                  key="confirm"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.22, ease: EASE }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="confirm-password"
+                      className="block text-[11.5px] font-semibold uppercase tracking-[0.1em] text-text-muted"
+                    >
+                      Confirm Password
+                    </label>
+                    <div
+                      className={`flex items-center overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-150
+                        ${fieldErrors.confirm
+                          ? 'border-red-300 ring-2 ring-red-100'
+                          : 'border-[rgba(0,0,0,0.10)] hover:border-[rgba(0,0,0,0.22)] focus-within:border-[#16A34A] focus-within:ring-2 focus-within:ring-[#16A34A]/20'
+                        }`}
+                    >
+                      <input
+                        id="confirm-password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirm: '' })) }}
+                        disabled={isSubmitting}
+                        className="flex-1 bg-transparent px-4 py-3 text-[13.5px] text-text-primary outline-none placeholder:text-text-subtle disabled:opacity-50"
+                      />
+                    </div>
+                    {fieldErrors.confirm && (
+                      <p className="text-[11px] font-medium text-red-500">{fieldErrors.confirm}</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* API error */}
             <AnimatePresence>
@@ -427,11 +508,11 @@ export default function LoginPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in…
+                    {mode === 'register' ? 'Creating account…' : 'Signing in…'}
                   </>
                 ) : (
                   <>
-                    Sign in to SolarPulse
+                    {mode === 'register' ? 'Create account' : 'Sign in to SolarPulse'}
                     <motion.span
                       animate={{ x: [0, 3, 0] }}
                       transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}

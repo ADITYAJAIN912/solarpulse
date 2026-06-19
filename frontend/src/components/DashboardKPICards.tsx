@@ -93,9 +93,8 @@ export function TotalPlantsCard({ count }: { count: number }) {
 }
 
 /* ── 2. Installed Capacity ──────────────────────────────────────────── */
-export function CapacityCard({ totalMw, maxMw = 500 }: { totalMw: number; maxMw?: number }) {
-  const n   = useCountUp(totalMw)
-  const pct = Math.min(100, (totalMw / maxMw) * 100)
+export function CapacityCard({ totalMw, plantCount }: { totalMw: number; plantCount: number }) {
+  const n = useCountUp(totalMw)
 
   return (
     <MetricCard accentColor="#16A34A" delay={0.07}>
@@ -107,19 +106,16 @@ export function CapacityCard({ totalMw, maxMw = 500 }: { totalMw: number; maxMw?
         {n.toFixed(1)}
         <span className="ml-1.5 text-[1.3rem] font-bold text-text-muted">MW</span>
       </MetricValue>
-
-      {/* Progress bar */}
-      <div className="mt-3 space-y-1">
-        <div className="h-1 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,0.06)]">
-          <motion.div
-            className="h-full rounded-full bg-[#16A34A]"
-            initial={{ width: '0%' }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.9, delay: 0.4, ease: EASE }}
-          />
-        </div>
-        <MetricFooter>{pct.toFixed(0)}% of {maxMw} MW capacity target</MetricFooter>
-      </div>
+      <MetricFooter>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          {plantCount === 0
+            ? 'No plants registered yet'
+            : plantCount === 1
+              ? 'Across 1 registered plant'
+              : `Across ${plantCount} registered plants`}
+        </span>
+      </MetricFooter>
     </MetricCard>
   )
 }
@@ -140,13 +136,20 @@ export function FleetHealthCard({
           <MetricLabel>Fleet Health</MetricLabel>
           <MetricValue>{Math.round(n)}%</MetricValue>
           <MetricFooter>
-            <span className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {healthPct === 0 ? (
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                {label}
               </span>
-              {label} — all systems nominal
-            </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </span>
+                {label} — all systems nominal
+              </span>
+            )}
           </MetricFooter>
         </div>
         <CapacityRing

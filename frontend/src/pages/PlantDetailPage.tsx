@@ -81,23 +81,23 @@ export default function PlantDetailPage() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 h-14">
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#16A34A]">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#16A34A]">
             <Zap className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="text-[14px] font-bold tracking-tight text-text-primary">SolarPulse</span>
-          <span className="mx-1 text-[12px] text-text-subtle">/</span>
+          <span className="hidden text-[14px] font-bold tracking-tight text-text-primary sm:block">SolarPulse</span>
+          <span className="hidden mx-1 text-[12px] text-text-subtle sm:block">/</span>
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-1 text-[12.5px] text-text-muted hover:text-text-primary transition-colors"
+            className="flex shrink-0 items-center gap-1 text-[12.5px] text-text-muted hover:text-text-primary transition-colors"
           >
             <ChevronLeft size={13} />
             Fleet Overview
           </button>
           {plant && (
             <>
-              <span className="text-[12px] text-text-subtle">/</span>
-              <span className="text-[12.5px] font-semibold text-text-primary">{plant.name}</span>
+              <span className="shrink-0 text-[12px] text-text-subtle">/</span>
+              <span className="truncate text-[12.5px] font-semibold text-text-primary">{plant.name}</span>
             </>
           )}
         </div>
