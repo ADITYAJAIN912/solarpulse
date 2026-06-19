@@ -14,7 +14,11 @@ from sqlalchemy.orm import Session
 from app.models.alert import Alert
 from app.models.plant import Plant
 from app.models.reading import EnergyReading
-from app.schemas.performance import FlaggedHour, PerformanceResponse
+from app.schemas.performance import (
+    FlaggedHour,
+    HourlyReading,
+    PerformanceResponse,
+)
 from app.services.ai_insights import generate_root_cause_explanation
 
 # ---------------------------------------------------------------------------
@@ -166,7 +170,19 @@ def evaluate_plant_readings(
     overall_pr = calculate_pr(total_actual, total_expected)
     risk_score = calculate_risk_score(overall_pr)
     severity = determine_severity(overall_pr)
+    hourly_readings: list[HourlyReading] = []
 
+    for r in readings:
+        if r.expected_output_kwh <= 0:
+            continue
+
+        hourly_readings.append(
+            HourlyReading(
+                hour=r.timestamp.hour,
+                actual_output_kwh=r.actual_output_kwh,
+                expected_output_kwh=r.expected_output_kwh,
+            )
+        )
     # --- Identify individually underperforming hours ---
     flagged_hours: list[FlaggedHour] = []
     for r in readings:
@@ -236,11 +252,14 @@ def evaluate_plant_readings(
         alert_id = alert.id
 
     return PerformanceResponse(
-        plant_id=plant_id,
-        date=eval_date,
-        overall_pr_pct=round(overall_pr, 2) if overall_pr is not None else None,
-        risk_score=risk_score,
-        severity=severity,
-        flagged_hours=flagged_hours,
-        alert_id=alert_id,
-    )
+    plant_id=plant_id,
+    date=eval_date,
+    overall_pr_pct=round(overall_pr, 2) if overall_pr is not None else None,
+    risk_score=risk_score,
+    severity=severity,
+
+    hourly_readings=hourly_readings,
+
+    flagged_hours=flagged_hours,
+    alert_id=alert_id,
+)
