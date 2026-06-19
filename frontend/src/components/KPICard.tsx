@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 export type KPIStatus = 'healthy' | 'warning' | 'critical'
@@ -13,6 +14,8 @@ export interface KPICardProps {
   className?: string
   /** Optional trailing content aligned with the value row */
   adornment?: ReactNode
+  /** When true, shows a muted placeholder instead of the value */
+  isLoading?: boolean
 }
 
 const statusDotClass: Record<KPIStatus, string> = {
@@ -28,6 +31,7 @@ export default function KPICard({
   status,
   className,
   adornment,
+  isLoading = false,
 }: KPICardProps) {
   return (
     <div
@@ -47,9 +51,13 @@ export default function KPICard({
             aria-hidden
           />
         )}
-        <p className="text-2xl font-semibold tracking-tight text-text-primary tabular-nums">
-          {value}
-        </p>
+        {isLoading ? (
+          <Skeleton className="h-8 w-16" aria-label="Loading" />
+        ) : (
+          <p className="text-2xl font-semibold tracking-tight text-text-primary tabular-nums">
+            {value}
+          </p>
+        )}
         {adornment}
       </div>
 

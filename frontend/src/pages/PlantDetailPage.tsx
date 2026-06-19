@@ -1,4 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSelector'
 import PlantDetailBackNav from '@/components/plant-detail/PlantDetailBackNav'
 import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
@@ -12,6 +13,7 @@ import {
   PlantDetailPageSkeleton,
 } from '@/components/plant-detail/PlantDetailSkeleton'
 import { usePlantDetail } from '@/hooks/usePlantDetail'
+import { pageEntrance } from '@/lib/motion'
 
 function parsePlantId(raw: string | undefined): number | undefined {
   if (!raw) return undefined
@@ -47,17 +49,27 @@ export default function PlantDetailPage() {
   if (plantId === undefined) {
     return (
       <div className="min-h-screen bg-bg-base">
-        <div className="mx-auto max-w-6xl px-6 py-10">
+        <motion.div
+          className="mx-auto max-w-6xl px-6 py-10"
+          initial={pageEntrance.initial}
+          animate={pageEntrance.animate}
+          transition={pageEntrance.transition}
+        >
           <PlantDetailBackNav onBack={() => navigate('/dashboard')} />
           <PlantDetailErrorCard message="Invalid plant ID." />
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <motion.div
+        className="mx-auto max-w-6xl px-6 py-10"
+        initial={pageEntrance.initial}
+        animate={pageEntrance.animate}
+        transition={pageEntrance.transition}
+      >
         <PlantDetailBackNav onBack={() => navigate('/dashboard')} />
 
         {isPlantLoading && <PlantDetailPageSkeleton />}
@@ -104,7 +116,7 @@ export default function PlantDetailPage() {
             />
           </>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

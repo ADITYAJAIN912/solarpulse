@@ -6,7 +6,6 @@
  *   backend/app/schemas/performance.py
  *   backend/app/schemas/anomaly.py
  *   backend/app/schemas/sustainability.py
- *   backend/app/schemas/alert.py
  *   backend/app/models/alert.py
  */
 

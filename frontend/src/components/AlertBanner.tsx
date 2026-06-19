@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getPlantPerformance } from '@/api/performance'
 import SeverityBadge from '@/components/SeverityBadge'
 import { formatRiskScore } from '@/lib/performance'
+import { slideDownFadeVariants } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import type { Plant, Severity } from '@/types'
 
@@ -80,23 +82,29 @@ export default function AlertBanner({ plants, className }: AlertBannerProps) {
     }
   }, [plants])
 
-  if (isChecking || flaggedPlants.length === 0) return null
-
   const plantCount = flaggedPlants.length
   const plantLabel = plantCount === 1 ? 'plant' : 'plants'
+  const showBanner = !isChecking && flaggedPlants.length > 0
 
   function navigateToPlant(plantId: number) {
     navigate(`/plants/${plantId}?date=${ALERT_BANNER_DEMO_DATE}`)
   }
 
   return (
-    <section
-      aria-label="Fleet performance alerts"
-      className={cn(
-        'rounded-[var(--radius-card)] border border-accent-amber/25 border-l-2 border-l-accent-amber bg-bg-surface px-5 py-4',
-        className,
-      )}
-    >
+    <AnimatePresence>
+      {showBanner && (
+        <motion.section
+          key="fleet-alert-banner"
+          aria-label="Fleet performance alerts"
+          variants={slideDownFadeVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className={cn(
+            'rounded-[var(--radius-card)] border border-accent-amber/25 border-l-2 border-l-accent-amber bg-bg-surface px-5 py-4',
+            className,
+          )}
+        >
       <button
         type="button"
         onClick={() => navigateToPlant(flaggedPlants[0].plant.id)}
@@ -157,6 +165,8 @@ export default function AlertBanner({ plants, className }: AlertBannerProps) {
         Review AI Analysis
         <ChevronRight className="h-3.5 w-3.5" aria-hidden />
       </button>
-    </section>
+        </motion.section>
+      )}
+    </AnimatePresence>
   )
 }

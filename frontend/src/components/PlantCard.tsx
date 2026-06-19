@@ -1,5 +1,7 @@
 import { MapPin, Zap } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { Plant } from '@/types'
+import { cardHoverTransition } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface PlantCardProps {
@@ -21,9 +23,11 @@ function formatCapacity(mw: number): string {
 
 export default function PlantCard({ plant, onClick }: PlantCardProps) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      whileHover={{ scale: 1.01 }}
+      transition={cardHoverTransition}
       className={cn(
         'group w-full rounded-[var(--radius-card)] border border-[var(--color-border)] bg-bg-surface p-5 text-left transition-colors',
         'hover:border-[var(--color-border-focus)] hover:bg-bg-hover',
@@ -49,6 +53,6 @@ export default function PlantCard({ plant, onClick }: PlantCardProps) {
       <p className="mt-4 text-xs text-text-subtle">
         Added {formatCreatedDate(plant.created_at)}
       </p>
-    </button>
+    </motion.button>
   )
 }

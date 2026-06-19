@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AlertCircle, Sparkles } from 'lucide-react'
 import { getAlert } from '@/api/alerts'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -7,6 +8,7 @@ import {
   formatRootCause,
   formatSeverityLabel,
 } from '@/lib/alert'
+import { contentFadeVariants } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import type { Alert, Severity } from '@/types'
 
@@ -197,9 +199,40 @@ export default function AIInsightCard({ alertId, className }: AIInsightCardProps
         className,
       )}
     >
-      {isLoading && <AIInsightCardSkeleton />}
-      {!isLoading && hasError && <AIInsightCardError />}
-      {!isLoading && !hasError && alert && <AIInsightCardContent alert={alert} />}
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <motion.div
+            key="insight-skeleton"
+            initial={false}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0, 0, 0.2, 1] }}
+          >
+            <AIInsightCardSkeleton />
+          </motion.div>
+        )}
+
+        {!isLoading && hasError && (
+          <motion.div
+            key="insight-error"
+            variants={contentFadeVariants}
+            initial="initial"
+            animate="animate"
+          >
+            <AIInsightCardError />
+          </motion.div>
+        )}
+
+        {!isLoading && !hasError && alert && (
+          <motion.div
+            key="insight-content"
+            variants={contentFadeVariants}
+            initial="initial"
+            animate="animate"
+          >
+            <AIInsightCardContent alert={alert} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

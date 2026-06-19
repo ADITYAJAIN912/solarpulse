@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { Loader2, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getPlants } from '@/api/plants'
@@ -7,6 +8,7 @@ import DashboardKPIRow from '@/components/DashboardKPIRow'
 import PlantCard from '@/components/PlantCard'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/errors'
+import { pageEntrance } from '@/lib/motion'
 import type { Plant } from '@/types'
 
 export default function DashboardPage() {
@@ -34,7 +36,12 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <motion.div
+        className="mx-auto max-w-6xl px-6 py-10"
+        initial={pageEntrance.initial}
+        animate={pageEntrance.animate}
+        transition={pageEntrance.transition}
+      >
         <header className="mb-10">
           <p className="text-xs uppercase tracking-widest text-text-muted">SolarPulse</p>
           <h1 className="mt-2 text-2xl font-semibold text-text-primary">Dashboard</h1>
@@ -93,7 +100,7 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }
