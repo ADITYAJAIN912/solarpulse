@@ -14,6 +14,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
+# Secret token that guards the one-time demo data seed endpoint.
+# Set SEED_TOKEN to any random string in the Railway dashboard.
+# Leave unset locally — the endpoint simply returns 403 if missing.
+SEED_TOKEN: str = os.getenv("SEED_TOKEN", "")
+
 # Comma-separated list of allowed frontend origins for CORS.
 # In production set this to your Vercel URL, e.g.:
 #   CORS_ORIGINS=https://solarpulse.vercel.app
