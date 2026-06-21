@@ -1,11 +1,15 @@
 fastapi
 uvicorn
 sqlalchemy
+psycopg2-binary
 python-jose
 bcrypt
 python-dotenv
-groq
+pydantic-settings
 pydantic[email]
+groq
 scikit-learn
+alembic
+apscheduler
 httpx
 pytest

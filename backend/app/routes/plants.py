@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.plant import Plant
 from app.models.user import User
+from app.repositories.plant_repository import plant_repo
 from app.schemas.anomaly import AnomalyDetectionResponse
 from app.schemas.performance import PerformanceResponse
 from app.schemas.plant import PlantCreate, PlantResponse
@@ -32,11 +33,7 @@ def create_plant(
     owner_id is set server-side from the JWT — callers cannot assign
     plants to other users by manipulating the request body.
     """
-    plant = Plant(**payload.model_dump(), owner_id=current_user.id)
-    db.add(plant)
-    db.commit()
-    db.refresh(plant)
-    return plant
+    return plant_repo.create(db, payload=payload, owner_id=current_user.id)
 
 
 @router.get("", response_model=list[PlantResponse])
@@ -50,7 +47,7 @@ def list_plants(
     Filters strictly by owner_id so users can only see their own assets —
     no plant owned by another account is ever included in the response.
     """
-    return db.query(Plant).filter(Plant.owner_id == current_user.id).all()
+    return plant_repo.get_by_owner(db, current_user.id)
 
 
 @router.get("/{plant_id}", response_model=PlantResponse)
@@ -62,14 +59,11 @@ def get_plant(
     """
     Fetch a single plant by id with an ownership check.
 
-    Two distinct error cases are handled explicitly:
-    - 404: the plant does not exist at all.
-    - 403: the plant exists but belongs to a different user.  Returning 403
-      instead of 404 here is intentional — the caller already knows their
-      own plant ids from GET /plants, so leaking existence to the same
-      authenticated user is acceptable and gives a clearer error.
+    Two distinct error cases:
+    - 404: the plant does not exist.
+    - 403: the plant exists but belongs to a different user.
     """
-    plant = db.get(Plant, plant_id)
+    plant = plant_repo.get_by_id(db, plant_id)
 
     if plant is None:
         raise HTTPException(
@@ -88,7 +82,7 @@ def get_plant(
 
 def _get_owned_plant(plant_id: int, db: Session, current_user: User) -> Plant:
     """Shared ownership guard used by sub-resource routes."""
-    plant = db.get(Plant, plant_id)
+    plant = plant_repo.get_by_id(db, plant_id)
     if plant is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -112,13 +106,8 @@ def get_plant_performance(
     """
     Evaluate a plant's daily Performance Ratio and return a severity assessment.
 
-    Ownership is checked before any data is read — a user cannot query
-    performance data for a plant they do not own.
-
     If the overall daily PR is below the warning threshold (85%), an Alert
-    row is upserted in the database for this plant + date.  Calling the
-    endpoint multiple times for the same date is safe — it updates the
-    existing alert rather than creating duplicates.
+    row is upserted in the database for this plant + date.
     """
     _get_owned_plant(plant_id, db, current_user)
     return evaluate_plant_readings(plant_id=plant_id, db=db, eval_date=eval_date)
@@ -142,8 +131,7 @@ def get_plant_anomalies(
 
     Trains on daytime plant-level readings from the lookback window, then
     flags individual hours on eval_date whose output profile deviates from
-    the learned baseline.  Complements GET /plants/{id}/performance which
-    applies rule-based daily PR thresholds.
+    the learned baseline.
     """
     _get_owned_plant(plant_id, db, current_user)
     return detect_plant_anomalies(
@@ -161,9 +149,9 @@ def get_plant_sustainability(
     current_user: User = Depends(get_current_user),
 ) -> SustainabilitySummary:
     """
-    Return lifetime CO₂ savings for a plant based on total energy generated.
+    Return lifetime CO2 savings for a plant based on total energy generated.
 
-    Uses India's approximate grid emission factor (0.82 kg CO₂/kWh) to estimate
+    Uses India's approximate grid emission factor (0.82 kg CO2/kWh) to estimate
     avoided emissions.  Only plant-level readings are summed so inverter-level
     rows are not double-counted.
     """

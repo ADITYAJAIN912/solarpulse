@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
+from app.repositories.user_repository import user_repo
 from app.schemas.user import Token, UserCreate, UserLogin, UserResponse
 from app.services.auth_service import (
     create_access_token,
@@ -28,21 +29,17 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
     bcrypt, persists the new User row, and returns the safe UserResponse
     (no password_hash).  Returns 400 if the email is already registered.
     """
-    existing = db.query(User).filter(User.email == payload.email).first()
-    if existing:
+    if user_repo.email_exists(db, payload.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists.",
         )
 
-    user = User(
+    return user_repo.create(
+        db,
         email=payload.email,
         password_hash=hash_password(payload.password),
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 @router.post("/login", response_model=Token)
@@ -55,7 +52,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> dict:
     for any credential mismatch — a deliberately generic message so that
     attackers cannot infer whether the email exists in the system.
     """
-    user = db.query(User).filter(User.email == payload.email).first()
+    user = user_repo.get_by_email(db, payload.email)
 
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(

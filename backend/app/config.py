@@ -1,36 +1,18 @@
-import os
+"""
+app/config.py — backward-compatible re-export.
 
-from dotenv import load_dotenv
+All application code that previously imported bare constants from this
+module (e.g. `from app.config import JWT_SECRET`) continues to work
+without change.  The canonical source of truth is now app/core/config.py.
+"""
 
-load_dotenv()
+from app.core.config import settings
 
-# Application settings loaded from environment variables.
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./solarpulse.db")
-JWT_SECRET: str = os.getenv("JWT_SECRET", "")
-JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
-)
-GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-
-# Secret token that guards the one-time demo data seed endpoint.
-# Set SEED_TOKEN to any random string in the Railway dashboard.
-# Leave unset locally — the endpoint simply returns 403 if missing.
-SEED_TOKEN: str = os.getenv("SEED_TOKEN", "")
-
-# Comma-separated list of allowed frontend origins for CORS.
-# In production set this to your Vercel URL, e.g.:
-#   CORS_ORIGINS=https://solarpulse.vercel.app
-# Leave unset locally — the fallback list covers localhost dev servers.
-_cors_env: str = os.getenv("CORS_ORIGINS", "")
-CORS_ORIGINS: list[str] = (
-    [o.strip() for o in _cors_env.split(",") if o.strip()]
-    if _cors_env
-    else [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ]
-)
+DATABASE_URL = settings.database_url
+JWT_SECRET = settings.jwt_secret
+JWT_ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+GROQ_API_KEY = settings.groq_api_key
+GROQ_MODEL = settings.groq_model
+CORS_ORIGINS = settings.cors_origins
+SEED_TOKEN = settings.seed_token
