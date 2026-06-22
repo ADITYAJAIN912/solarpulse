@@ -7,6 +7,8 @@ import {
 import { getWeather, type WeatherData } from '@/api/weather'
 import type { Plant } from '@/types'
 
+export type { WeatherData }
+
 // ── Weather icon mapping ─────────────────────────────────────────────────────
 function WeatherIcon({ icon, size = 24, className = '' }: { icon: string; size?: number; className?: string }) {
   const props = { size, className }
@@ -140,21 +142,29 @@ function WeatherSkeleton() {
 // ── Main component ────────────────────────────────────────────────────────────
 interface Props {
   plant: Plant
+  /** Pre-fetched weather from parent — avoids a duplicate API call */
+  weather?: WeatherData | null
 }
 
-export default function WeatherCard({ plant }: Props) {
-  const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function WeatherCard({ plant, weather: weatherProp }: Props) {
+  const [weather, setWeather] = useState<WeatherData | null>(weatherProp ?? null)
+  const [loading, setLoading] = useState(!weatherProp)
   const [error, setError]     = useState(false)
 
   useEffect(() => {
+    // If parent already supplied weather data, skip the fetch
+    if (weatherProp !== undefined) {
+      setWeather(weatherProp)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(false)
     getWeather(plant.latitude, plant.longitude)
       .then(setWeather)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [plant.latitude, plant.longitude])
+  }, [plant.latitude, plant.longitude, weatherProp])
 
   if (loading) return <WeatherSkeleton />
 

@@ -72,6 +72,47 @@ function solarImpactLabel(impact: WeatherData['solarImpact']): string {
   }
 }
 
+/**
+ * Derive an approximate climate zone label from coordinates + temperature.
+ * Uses broad regional heuristics — accurate enough for display purposes.
+ */
+export function deriveClimateZone(lat: number, lon: number, temperature: number): string {
+  // Indian subcontinent zones
+  if (lat >= 24 && lat <= 32 && lon >= 68 && lon <= 77) return 'Hot Arid'
+  if (lat >= 18 && lat <= 24 && lon >= 72 && lon <= 85) return 'Semi-Arid'
+  if (lat < 18 && lon > 70)                              return 'Tropical'
+  if (lat > 32)                                          return 'Continental'
+  // Global temperature-based fallback
+  if (temperature >= 35) return 'Hot Arid'
+  if (temperature >= 28) return 'Semi-Arid'
+  if (temperature >= 20) return 'Tropical'
+  return 'Temperate'
+}
+
+/**
+ * Estimate daily Global Horizontal Irradiance (kWh/m²) from UV index max.
+ * This is an approximation based on the strong correlation between GHI and UV.
+ */
+export function estimateGHI(uvIndexMax: number, sunriseIso: string, sunsetIso: string): number {
+  const solarHours = (new Date(sunsetIso).getTime() - new Date(sunriseIso).getTime()) / 3_600_000
+  const ghi = (uvIndexMax * solarHours * 0.065)
+  return Math.round(ghi * 10) / 10
+}
+
+/** Fetch plant elevation (metres ASL) from Open-Meteo's elevation endpoint. */
+export async function getElevation(latitude: number, longitude: number): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/elevation?latitude=${latitude}&longitude=${longitude}`
+    )
+    if (!res.ok) return null
+    const json = await res.json()
+    return Math.round(json.elevation?.[0] ?? null)
+  } catch {
+    return null
+  }
+}
+
 export async function getWeather(latitude: number, longitude: number): Promise<WeatherData> {
   const params = new URLSearchParams({
     latitude:  String(latitude),

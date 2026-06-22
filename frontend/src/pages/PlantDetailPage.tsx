@@ -14,8 +14,9 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronLeft, LogOut, UploadCloud, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TOKEN_KEY } from '@/api/client'
+import { getWeather, type WeatherData } from '@/api/weather'
 import { UploadReadingsModal } from '@/components/readings/UploadReadingsModal'
 import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSelector'
 import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
@@ -74,6 +75,15 @@ export default function PlantDetailPage() {
   } = usePlantDetail(plantId, initialDate)
 
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [weather, setWeather] = useState<WeatherData | null>(null)
+
+  // Fetch weather once plant coordinates are known — shared by WeatherCard and LocationCard
+  useEffect(() => {
+    if (!plant) return
+    getWeather(plant.latitude, plant.longitude)
+      .then(setWeather)
+      .catch(() => setWeather(null))
+  }, [plant?.latitude, plant?.longitude])
 
   function handleLogout() {
     localStorage.removeItem(TOKEN_KEY)
@@ -216,13 +226,13 @@ export default function PlantDetailPage() {
             {/* Weather */}
             <section className="mb-10">
               <SectionLabel>Live Weather Conditions</SectionLabel>
-              <WeatherCard plant={plant} />
+              <WeatherCard plant={plant} weather={weather} />
             </section>
 
             {/* Location */}
             <section>
               <SectionLabel>Plant Location</SectionLabel>
-              <LocationCard plant={plant} />
+              <LocationCard plant={plant} weather={weather} />
             </section>
           </>
         )}
