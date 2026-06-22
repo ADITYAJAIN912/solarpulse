@@ -13,8 +13,10 @@
 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, LogOut, Zap } from 'lucide-react'
+import { ChevronLeft, LogOut, UploadCloud, Zap } from 'lucide-react'
+import { useState } from 'react'
 import { TOKEN_KEY } from '@/api/client'
+import { UploadReadingsModal } from '@/components/readings/UploadReadingsModal'
 import PerformanceDateSelector from '@/components/plant-detail/PerformanceDateSelector'
 import PlantDetailErrorCard from '@/components/plant-detail/PlantDetailErrorCard'
 import PlantDetailHeader from '@/components/plant-detail/PlantDetailHeader'
@@ -70,6 +72,8 @@ export default function PlantDetailPage() {
     retryPlant, retryPerformance,
   } = usePlantDetail(plantId, initialDate)
 
+  const [uploadOpen, setUploadOpen] = useState(false)
+
   function handleLogout() {
     localStorage.removeItem(TOKEN_KEY)
     navigate('/login', { replace: true })
@@ -102,14 +106,25 @@ export default function PlantDetailPage() {
           )}
         </div>
 
-        {/* Sign out */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-text-muted transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-        >
-          <LogOut size={12} />
-          Sign out
-        </button>
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {plant && (
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-text-muted transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <UploadCloud size={12} />
+              Upload Data
+            </button>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-text-muted transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut size={12} />
+            Sign out
+          </button>
+        </div>
       </div>
     </header>
   )
@@ -129,6 +144,16 @@ export default function PlantDetailPage() {
   return (
     <div className="min-h-screen bg-[#F7F7F3]">
       {TopBar}
+
+      {plant && (
+        <UploadReadingsModal
+          plantId={plant.id}
+          plantName={plant.name}
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+          onUploaded={() => retryPerformance()}
+        />
+      )}
 
       <motion.main
         className="mx-auto max-w-6xl px-6 py-8 pb-24"

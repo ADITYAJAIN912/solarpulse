@@ -119,6 +119,36 @@ export interface AnomalyResult {
 }
 
 // ---------------------------------------------------------------------------
+// Readings upload
+// ---------------------------------------------------------------------------
+
+export interface HourlyReadingInput {
+  hour: number
+  actual_output_kwh: number
+  expected_output_kwh?: number
+}
+
+export interface ReadingsUploadPayload {
+  date: string
+  readings: HourlyReadingInput[]
+  overwrite: boolean
+}
+
+export interface ReadingsUploadResult {
+  rows_inserted: number
+  rows_skipped: number
+  dates_covered: string[]
+  warnings: string[]
+}
+
+export interface ExpectedOutputByHour {
+  plant_id: number
+  date: string
+  capacity_mw: number
+  expected_by_hour: Record<number, number>
+}
+
+// ---------------------------------------------------------------------------
 // Sustainability
 // ---------------------------------------------------------------------------
 

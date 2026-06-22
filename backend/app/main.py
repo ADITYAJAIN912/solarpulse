@@ -32,6 +32,7 @@ from app.database import Base, engine
 from app.models import Alert, EnergyReading, Inverter, Plant, User  # noqa: F401
 from app.routes import admin, alerts, auth, plants
 from app.routes.health import router as health_router
+from app.routes.readings import router as readings_router
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.startup import seed_demo_data
 
@@ -123,6 +124,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(plants.router)
+app.include_router(readings_router)
 app.include_router(alerts.router)
 app.include_router(admin.router)
 app.include_router(health_router)

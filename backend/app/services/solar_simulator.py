@@ -123,6 +123,19 @@ def generate_hourly_output(
     )
 
 
+def calculate_expected_output_kwh(capacity_mw: float, hour_of_day: int) -> float:
+    """
+    Return the deterministic expected output (kWh) for a given capacity and hour.
+
+    Uses the same half-sine irradiance model as generate_hourly_output but
+    with no randomness — suitable for auto-populating the Expected column
+    in the user-facing readings upload form.
+    """
+    return generate_hourly_output(
+        capacity_mw, hour_of_day, weather_variance=False, fault_injection=False
+    ).expected_output_kwh
+
+
 # ---------------------------------------------------------------------------
 # Day-level simulation
 # ---------------------------------------------------------------------------

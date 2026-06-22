@@ -6,10 +6,12 @@
  * 3-D tilt via TiltCard on hover; capacity bar animates on mount.
  */
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowUpRight, MapPin, Zap } from 'lucide-react'
+import { ArrowUpRight, MapPin, UploadCloud, Zap } from 'lucide-react'
 import Sparkline from '@/components/ui/Sparkline'
 import TiltCard from '@/components/ui/TiltCard'
+import { UploadReadingsModal } from '@/components/readings/UploadReadingsModal'
 import { useCountUp } from '@/hooks/useCountUp'
 import type { Plant } from '@/types'
 
@@ -29,12 +31,20 @@ export default function PlantCard({ plant, index, totalCapacityMw, onClick }: Pl
   const accent       = ACCENTS[index % ACCENTS.length]
   const sharePercent = totalCapacityMw > 0 ? (plant.capacity_mw / totalCapacityMw) * 100 : 0
   const capacityAnim = useCountUp(plant.capacity_mw, { duration: 0.9 })
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const sinceDate = new Intl.DateTimeFormat('en-US', {
     month: 'short', year: 'numeric',
   }).format(new Date(plant.created_at))
 
   return (
+    <>
+    <UploadReadingsModal
+      plantId={plant.id}
+      plantName={plant.name}
+      open={uploadOpen}
+      onClose={() => setUploadOpen(false)}
+    />
     <TiltCard maxTilt={5} className="h-full">
       <div
         role="button"
@@ -117,6 +127,13 @@ export default function PlantCard({ plant, index, totalCapacityMw, onClick }: Pl
               <Zap size={11} style={{ color: '#22c55e' }} />
               <span>Active since {sinceDate}</span>
             </div>
+            <button
+              onClick={e => { e.stopPropagation(); setUploadOpen(true) }}
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-text-muted hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100"
+              title="Upload readings"
+            >
+              <UploadCloud size={11} /> Upload
+            </button>
 
             {/* Arrow — slides in on group hover */}
             <motion.div
@@ -141,5 +158,6 @@ export default function PlantCard({ plant, index, totalCapacityMw, onClick }: Pl
         </div>
       </div>
     </TiltCard>
+    </>
   )
 }
