@@ -34,7 +34,19 @@ from app.models.reading import EnergyReading
 from app.repositories.plant_repository import plant_repo
 from app.repositories.user_repository import user_repo
 from app.services.auth_service import hash_password
+from app.services.performance import evaluate_plant_readings
 from app.services.solar_simulator import simulate_plant_day
+
+# Dates that have injected faults — pre-evaluated on startup so the
+# AlertBanner works immediately for any visitor, including the first one.
+DEMO_FAULT_DATES: list[date] = [
+    date(2026, 6, 5),
+    date(2026, 6, 10),
+    date(2026, 6, 15),
+    date(2026, 6, 20),
+    date(2026, 6, 24),
+    date(2026, 6, 28),
+]
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +164,41 @@ def seed_demo_data() -> None:
                 "fault_calendar": fault_days_seeded,
             },
         )
+
+        # ── Step 4: Pre-evaluate fault dates → persist Alert rows ────────
+        # The AlertBanner works by calling GET /plants/{id}/performance?date=X
+        # which lazily triggers evaluate_plant_readings().  To guarantee the
+        # AlertBanner populates correctly for the *very first* visitor on a
+        # fresh deployment (before any endpoint has been called), we eagerly
+        # evaluate all known fault dates here.
+        #
+        # evaluate_plant_readings is idempotent — calling it again on an
+        # already-evaluated date just overwrites the Alert row with the same
+        # values, which is safe.
+        logger.info(
+            "startup.seed: pre-evaluating fault dates",
+            extra={"plant_id": demo_plant.id, "dates": [str(d) for d in DEMO_FAULT_DATES]},
+        )
+        for fault_date in DEMO_FAULT_DATES:
+            try:
+                result = evaluate_plant_readings(
+                    plant_id=demo_plant.id, db=db, eval_date=fault_date
+                )
+                logger.info(
+                    "startup.seed: evaluated",
+                    extra={
+                        "date": str(fault_date),
+                        "pr": result.overall_pr,
+                        "severity": result.severity,
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "startup.seed: evaluation failed for date",
+                    extra={"date": str(fault_date)},
+                )
+
+        logger.info("startup.seed: all steps complete — demo database is ready")
 
     except Exception:
         logger.exception("startup.seed: seeding failed — application will continue but may show empty data")
