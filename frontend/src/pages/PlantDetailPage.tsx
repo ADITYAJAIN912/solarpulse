@@ -28,6 +28,7 @@ import {
   PlantDetailPageSkeleton,
 } from '@/components/plant-detail/PlantDetailSkeleton'
 import LocationCard from '@/components/LocationCard'
+import WeatherCard from '@/components/plant-detail/WeatherCard'
 import { usePlantDetail } from '@/hooks/usePlantDetail'
 import { pageEntrance } from '@/lib/motion'
 
@@ -210,6 +211,12 @@ export default function PlantDetailPage() {
             <section className="mb-10">
               <SectionLabel>AI Analysis</SectionLabel>
               <AIInsightCard alertId={performance?.alert_id ?? null} />
+            </section>
+
+            {/* Weather */}
+            <section className="mb-10">
+              <SectionLabel>Live Weather Conditions</SectionLabel>
+              <WeatherCard plant={plant} />
             </section>
 
             {/* Location */}
